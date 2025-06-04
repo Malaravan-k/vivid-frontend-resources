@@ -1,3 +1,6 @@
+import { Dispatch } from "@reduxjs/toolkit";
+import { openSnackbar, closeSnackbar } from '../store/reducer/snackbar';
+
 // Utility to check if an object is empty
 export function isEmpty(object: Record<string, any> = {}): boolean {
   return !(object && Object.keys(object).length);
@@ -13,6 +16,64 @@ interface BuildQueryParams {
   filters?: Record<string, string | number | boolean>;
   columnFilters?: Record<string, string | number | boolean>;
   queryParams?: Record<string, any>;
+}
+
+export function snackbarActions(error?:any, message?:any, userInteraction = false) {
+  return (dispatch:Dispatch) => {
+    if (error) {
+      if (userInteraction) {
+        dispatch(
+          openSnackbar({
+            open: true,
+            message: message,
+            variant: 'userInteraction',
+            alert: {
+              color: 'error'
+            },
+            severity: 'error',
+            close: true,
+            error:true
+
+          })
+        );
+      } else {
+        dispatch(
+          openSnackbar({
+           
+            open: true,
+            message: message,
+            variant: 'alert',
+            alert: {
+              color: 'error'
+            },
+            severity: 'error',
+            close: true,
+            error:true
+          })
+        );
+      }
+    } else {
+      dispatch(
+        openSnackbar({
+          open: true,
+          message: message,
+          variant: 'alert',
+          alert: {
+            color: 'success'
+          },
+          severity: 'success',
+          close: true,
+          error:false
+        })
+      );
+    }
+  };
+}
+
+export function snackbarClose() {
+  return (dispatch:Dispatch) => {
+    dispatch(closeSnackbar());
+  };
 }
 
 // Main function to build the query object

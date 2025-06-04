@@ -31,7 +31,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#ECF2FF' }}>
-      {isLoggedIn && <Navbar />}
+      {(isLoggedIn && user) && <Navbar />}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>

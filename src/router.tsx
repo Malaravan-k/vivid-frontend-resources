@@ -1,13 +1,14 @@
+// router.tsx
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import CasesTable from './pages/cases/CasesTable';
 import CaseDetail from './pages/cases/CaseDetail';
-import MobileTable from './pages/mobile/MobileTable';
-import MobileDetail from './pages/mobile/MobileDetail';
 import SettingsPage from './pages/settings/SettingsTable.jsx';
 import MessagesTable from './pages/messages/MessagesTable';
 import ChatScreen from './pages/messages/ChatScreen';
+import AdminRoute from './AdminRoute';
+import NonAdminRoute from './NonAdminRoutes';
 
 const router = createBrowserRouter([
   {
@@ -20,32 +21,54 @@ const router = createBrowserRouter([
   },
   {
     path: '/cases',
-    element: <Layout><CasesTable /></Layout>,
+    element: (
+      <Layout>
+        <NonAdminRoute>
+          <CasesTable />
+        </NonAdminRoute>
+      </Layout>
+    ),
   },
   {
     path: '/cases/:id',
-    element: <Layout><CaseDetail /></Layout>,
-  },
-  {
-    path: '/mobile',
-    element: <Layout><MobileTable /></Layout>,
-  },
-  {
-    path: '/mobile/:id',
-    element: <Layout><MobileDetail /></Layout>,
+    element: (
+      <Layout>
+        <NonAdminRoute>
+          <CaseDetail />
+        </NonAdminRoute>
+      </Layout>
+    ),
   },
   {
     path: '/messages',
-    element: <Layout><MessagesTable /></Layout>,
+    element: (
+      <Layout>
+        <NonAdminRoute>
+          <MessagesTable />
+        </NonAdminRoute>
+      </Layout>
+    ),
   },
   {
     path: '/messages/:id',
-    element: <Layout><ChatScreen /></Layout>,
+    element: (
+      <Layout>
+        <NonAdminRoute>
+          <ChatScreen />
+        </NonAdminRoute>
+      </Layout>
+    ),
   },
   {
     path: '/settings',
-    element: <Layout><SettingsPage /></Layout>,
-  },
+    element: (
+      <Layout>
+        <AdminRoute>
+          <SettingsPage />
+        </AdminRoute>
+      </Layout>
+    ),
+  }
 ]);
 
 export default router;
