@@ -93,8 +93,7 @@ const Settings = () => {
   const dispatch = useDispatch();
   const {userRecords ,loading , success, deleteSuccess} = useSelector((state)=>state.userReducer)
   const {inprogress} = useSelector((state)=>state.loaderReducer)
-  console.log("inprogress,,,",inprogress)
-  console.log("deleteSuccess",deleteSuccess)
+
 
  const pageSize = 10;
 

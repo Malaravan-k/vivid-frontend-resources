@@ -3,15 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import Table from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { fetchCases } from '../../utils/api';
 import { Case } from '../../types';
 import {  Search } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import {dispatch, RootState} from '../../store/index'
 import { casesActions } from '../../store/actions/cases.actions';
+import { callerActions } from '../../store/actions/caller.action.js';
 
 const CasesTable = () => {
-  const [cases, setCases] = useState<Case[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const navigate = useNavigate();
   const {records , loading ,total} = useSelector((state:RootState)=>state.caseReducer)
@@ -20,21 +19,11 @@ const CasesTable = () => {
     dispatch(casesActions.loadRecords({page:currentPage, pageSize:pageSize}))
   },[currentPage])
 
-  useEffect(() => {
-    const loadCases = async () => {
-      // setLoading(true);
-      try {
-        const result = await fetchCases(currentPage, pageSize);
-        setCases(result.data);
-      } catch (error) {
-        console.error('Failed to fetch cases:', error);
-      } finally {
-        // setLoading(false);
-      }
-    };
 
-    loadCases();
-  }, [currentPage]);
+
+   useEffect(()=>{
+   dispatch(callerActions.getCallerToken('vivid_agent_19844597890'))
+  },[])
 
   const handleRowClick = (item: Case) => {
   navigate(`/cases/${item.case_id}`, {
@@ -54,7 +43,15 @@ const CasesTable = () => {
       accessor: 'owner_name',
     },
     {
-      header: 'Contact Number',
+      header: 'Mobile Number 1',
+      accessor: 'mobile_number_1',
+    },
+    {
+      header: 'Mobile Number 2',
+      accessor: 'mobile_number_1',
+    },
+    {
+      header: 'Mobile Number 3',
       accessor: 'mobile_number_1',
     },
     {
@@ -92,7 +89,7 @@ const CasesTable = () => {
         <Table
           columns={columns}
           data={records}
-          keyExtractor={(item) => item.case_id}
+          keyExtractor={(item) => item.case_number}
           onRowClick={handleRowClick}
           isLoading={loading}
         />

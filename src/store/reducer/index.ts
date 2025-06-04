@@ -5,18 +5,20 @@ import loaderReducer from './loader.reducers';
 import sessionReducer from './session.reducer'
 import userReducer from './user.reducers'
 import caseReducer from './cases.reducer';
+import snackbar from './snackbar'
 
 const rootReducer = combineReducers({
 
   sessionReducer,
   userReducer,
   caseReducer,
-  loaderReducer
+  loaderReducer,
+  snackbar
 });
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['sessionReducer', 'userReducer','caseReducer','loaderReducer'] // reducers you want to persist
+  whitelist: ['sessionReducer', 'userReducer','caseReducer','loaderReducer','snackbar'] // reducers you want to persist
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
