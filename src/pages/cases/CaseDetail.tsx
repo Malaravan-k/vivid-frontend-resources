@@ -109,11 +109,11 @@ const CaseDetail = () => {
                 </div>
                 <div>
                   <p className="text-md text-gray-900">Phone 1: <span className="text-sm font-medium  text-gray-500">{phoneNumbers[0] || 'N/A'}</span></p>
-                  <p className="text-md text-gray-900">Phone 1: <span className="text-sm font-medium  text-gray-500">{phoneNumbers[0] || 'N/A'}</span></p>
-                  <p className="text-md text-gray-900">Phone 1: <span className="text-sm font-medium  text-gray-500">{phoneNumbers[0] || 'N/A'}</span></p>
+                  <p className="text-md text-gray-900">Phone 1: <span className="text-sm font-medium  text-gray-500">{phoneNumbers[1] || 'N/A'}</span></p>
+                  <p className="text-md text-gray-900">Phone 1: <span className="text-sm font-medium  text-gray-500">{phoneNumbers[2] || 'N/A'}</span></p>
                 </div>
 
-
+               <div className='flex gap-5'>
                 {phoneNumbers.map((phone, index) => (
                   <button
                     key={index}
@@ -126,6 +126,7 @@ const CaseDetail = () => {
                     Phone {index + 1}
                   </button>
                 ))}
+                </div>
 
               </div>
 

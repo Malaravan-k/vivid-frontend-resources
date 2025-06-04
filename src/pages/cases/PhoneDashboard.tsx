@@ -19,7 +19,7 @@ type PhoneDashboardProps = {
 const tokenurl = 'http://100.24.49.133:5000';
 const socket = io(tokenurl);
 
-const PhoneDashboard: React.FC = () => {
+const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber })=> {
   const [status, setStatus] = useState('Disconnected');
   const [call, setCall] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -31,11 +31,9 @@ const PhoneDashboard: React.FC = () => {
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  console.log("status",status)
 
-
-  const ownerNumber = '+918300606225';
-  const agentNumber = '+19844597890';
-  const agentId = `vivid_agent_${agentNumber.replace('+', '')}`;
+  const agentId = `vivid_agent_${agentNumber?.replace('+', '')}`;
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.sessionReducer);
   const userRole = user?.["custom:role"];
@@ -186,7 +184,6 @@ const PhoneDashboard: React.FC = () => {
     const dev = getDevice(storedToken);
     if (dev) {
       const newCall = connectCall({ To: ownerNumber, agent: agentNumber });
-      console.log("newCall", newCall);
       if (newCall) {
         setStatus('calling');
         setCall(newCall);
@@ -241,7 +238,7 @@ const PhoneDashboard: React.FC = () => {
     }
   };
   const getPhoneIcon = () => {
-    const ringingStatuses = ['in-progress', 'ringing', 'calling', 'connecting', 'initiated'];
+    const ringingStatuses = ['in-progress', 'ringing', 'calling', 'connecting', 'initiating'];
 
     if (ringingStatuses.includes(status.toLowerCase())) {
       return (
@@ -264,11 +261,11 @@ const PhoneDashboard: React.FC = () => {
 
 
   const handleToggleMute = () => {
-    console.log('=== MUTE DEBUG INFO ===');
-    console.log('Current isMuted state:', isMuted);
-    console.log('Call object:', call);
-    console.log('Call object type:', typeof call);
-    console.log('Status:', status);
+    // console.log('=== MUTE DEBUG INFO ===');
+    // console.log('Current isMuted state:', isMuted);
+    // console.log('Call object:', call);
+    // console.log('Call object type:', typeof call);
+    // console.log('Status:', status);
 
     if (call) {
       console.log('Call object methods:', Object.getOwnPropertyNames(call));
@@ -331,6 +328,10 @@ const PhoneDashboard: React.FC = () => {
   // Check if call is active (for showing mute button)
   const isCallActive = call && ['in-progress', 'ringing', 'connecting'].includes(status.toLowerCase());
 
+  // console.log("Status from ui:", status);
+  // console.log("Is muted:", isMuted);
+  // console.log("Call object exists:", !!call);
+
   return (
     <div className="w-full h-[40vh] mx-auto rounded-2xl bg-gray-100 p-5 relative shadow-xl flex flex-col justify-between font-sans">
       {isIncomingCall && (
@@ -356,7 +357,7 @@ const PhoneDashboard: React.FC = () => {
         )}
       </div>
 
-      <div className="flex flex-col items-center justify-center py-4 mb-8">
+      <div className="flex flex-col items-center justify-center py-4 mb-16">
         <div className="p-4 rounded-full bg-white shadow-md flex items-center justify-center">
           {getPhoneIcon()}
         </div>
@@ -366,7 +367,7 @@ const PhoneDashboard: React.FC = () => {
 
       {isCallActive && (
         <div
-          className={`absolute bottom-[50px] left-5 text-gray-600 text-base cursor-pointer flex items-center space-x-2 p-2 rounded-lg transition-colors ${isMuted ? 'bg-red-100 text-red-600' : 'bg-gray-100 hover:bg-gray-200'
+          className={`absolute bottom-[100px] left-5 text-gray-600 text-base cursor-pointer flex items-center space-x-2 p-2 rounded-lg transition-colors ${isMuted ? 'bg-red-100 text-red-600' : 'bg-gray-100 hover:bg-gray-200'
             }`}
           onClick={handleToggleMute}
           title={isMuted ? 'Unmute' : 'Mute'}
@@ -376,7 +377,7 @@ const PhoneDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
+      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2">
         <button
           className={`${['in-progress', 'ringing', 'initiated', 'calling', 'connecting'].includes(status.toLowerCase())
             ? 'bg-red-600 hover:bg-red-700'

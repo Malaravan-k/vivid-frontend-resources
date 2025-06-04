@@ -14,6 +14,7 @@ const Navbar = () => {
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   const { user } = useSelector((state: RootState) => state.sessionReducer);
+  const userName = user?.['cognito:username'] || 'User'
   const userRole = user?.['custom:role'] || '';
   const isAdmin = userRole === 'Admin';
 
@@ -76,7 +77,7 @@ const Navbar = () => {
                     </div>
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">
-                        {user?.name || 'User'}
+                        {userName}
                       </div>
                     </div>
                   </div>

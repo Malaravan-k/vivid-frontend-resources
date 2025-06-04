@@ -314,6 +314,7 @@ useEffect(() => {
               <input
                 type="text"
                 value={formData.userName}
+                disabled={showEditDialog}
                 onChange={(e) => handleInputChange('userName', e.target.value)}
                 className="w-full px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Alex"
@@ -337,6 +338,7 @@ useEffect(() => {
               <input
                 type="password"
                 value={formData.password}
+                disabled={showEditDialog}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 className="w-full px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="*#6huy77U80%"
@@ -347,7 +349,7 @@ useEffect(() => {
 
           <div className="flex space-x-4 mt-8">
             <Button type="submit" className="w-full" isLoading={inprogress}>
-                  Sign in
+                  {showEditDialog ? 'Edit' : 'Add '}
                 </Button>
             <button
               type="button" // Explicitly set as button type
