@@ -87,16 +87,9 @@ const CaseDetail = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Case Details</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">ID: {caseData.case_id}</p>
-          </div>
-        </div>
-
         <div className="px-4 py-5 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 p-4 rounded-lg shadow-md space-y-6">
+            <div className="bg-slate-50 p-10 rounded-lg shadow-md space-y-6">
               <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Owner Information</h4>
 
               <div className="space-y-2">
@@ -158,7 +151,10 @@ const CaseDetail = () => {
                 </div>
               </div>
             </div>
-            <PhoneDashboard agentNumber={agentNumber} ownerNumber={selectedPhoneNumber} />
+            <div>
+              <PhoneDashboard agentNumber={agentNumber} ownerNumber={selectedPhoneNumber} />
+              </div>
+            
           </div>
         </div>
       </div>
