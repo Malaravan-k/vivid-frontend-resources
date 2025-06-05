@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import io from 'socket.io-client';
 import { MdMic, MdMicOff } from 'react-icons/md';
 import { FiPhone } from 'react-icons/fi';
@@ -7,14 +7,11 @@ import { MdPhoneInTalk } from 'react-icons/md';
 import { motion } from 'framer-motion';
 
 import { RootState } from '../../store/index';
-import { callerActions } from '../../store/actions/caller.action';
 import {
-  initializeDevice,
   getDevice,
   connectCall,
   disconnectDevice,
 } from '../../components/CallerDevice/twilioDevice';
-import IncomingCallModal from '../../components/CaseDetails/IncomingCallModal';
 import PostCallForm from '../../components/CaseDetails/PostCallForm';
 import { formatCallDuration } from '../../utils/formatters';
 
@@ -30,83 +27,31 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
   const [status, setStatus] = useState('Disconnected');
   const [call, setCall] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [incomingConn, setIncomingConn] = useState<any | null>(null);
-  const [isIncomingCall, setIsIncomingCall] = useState(false);
-  const [callerNumber, setCallerNumber] = useState('');
-  const [callAccepted, setCallAccepted] = useState(false);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [lastCallerNumber, setLastCallerNumber] = useState('');
   const [isPostCallFormOpen, setIsPostCallFormOpen] = useState(false);
   const [isPostCallAvailable, setIsPostCallAvailable] = useState(false);
-  console.log("isIncomingCall", isIncomingCall)
-  console.log("incomingConn", incomingConn)
-  console.log("status", status)
+  
   // Refs
-  const callAcceptedRef = useRef(false);
-  const autoRejectTimeout = useRef<NodeJS.Timeout | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const deviceInitializedRef = useRef(false);
 
-  const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.sessionReducer);
   const userRole = user?.["custom:role"];
-  const agentId = `vivid_agent_${agentNumber?.replace('+', '')}`;
 
-  // Handle incoming call
-  const handleIncoming = useCallback((conn: any) => {
-    console.log("Incoming call detected:", conn);
-    const from = conn.parameters.From || 'Unknown';
-    if (autoRejectTimeout.current) {
-      clearTimeout(autoRejectTimeout.current);
-      autoRejectTimeout.current = null;
-    }
-    setCallerNumber(from);
-    setLastCallerNumber(from);
-    setIncomingConn(conn);
-    setIsIncomingCall(true);
-    setStatus('Incoming call...');
-    callAcceptedRef.current = false;
-
-    // Auto-reject after 30 seconds if call not answered
-    autoRejectTimeout.current = setTimeout(() => {
-      if (!callAcceptedRef.current && incomingConn) {
-        console.log("Auto-rejecting call after timeout");
-        incomingConn.reject();
-        setIsIncomingCall(false);
-        setStatus('Missed Call');
-        setIncomingConn(null);
-      }
-    }, 30000);
-  }, [incomingConn]);
-
-  // Initialize Twilio device
-  const initializeTwilioDevice = useCallback(() => {
-    if (deviceInitializedRef.current) return;
-
-    const storedToken = localStorage.getItem('twilioToken');
-    if (storedToken) {
-      initializeDevice(storedToken, handleIncoming, setStatus, callAcceptedRef);
-      deviceInitializedRef.current = true;
-    } else {
-      console.log("Getting new token from server");
-      dispatch(callerActions.getCallerToken(agentId));
-    }
-  }, [agentId, dispatch, handleIncoming]);
-
+  // Handle socket status updates
   useEffect(() => {
-    if (userRole === 'User' && agentNumber && !deviceInitializedRef.current) {
-      initializeTwilioDevice();
-    }
-    return () => {
-      if (autoRejectTimeout.current) {
-        clearTimeout(autoRejectTimeout.current);
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+    const handleStatusUpdate = (data: { CallStatus: string }) => {
+      console.log("Socket status update:::::", data.CallStatus);
+      setStatus(data.CallStatus);
     };
-  }, [userRole, agentNumber, initializeTwilioDevice]);
+
+    socket.on('call_status_update', handleStatusUpdate);
+
+    return () => {
+      socket.off('call_status_update', handleStatusUpdate);
+    };
+  }, []);
 
   // Handle call timer
   useEffect(() => {
@@ -141,83 +86,12 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
   // Check if call is completed and enable post call button
   useEffect(() => {
     const completedStatuses = ['completed', 'disconnected', 'call rejected', 'missed call'];
-    if (completedStatuses.some(s => status.toLowerCase().includes(s.toLowerCase())) && callAcceptedRef.current) {
+    if (completedStatuses.some(s => status.toLowerCase().includes(s.toLowerCase()))) {
       setIsPostCallAvailable(true);
-      callAcceptedRef.current = false; // Reset for next call
     } else if (status.toLowerCase() === 'in-progress' || status.toLowerCase() === 'ringing') {
       setIsPostCallAvailable(false);
     }
   }, [status]);
-
-  // Handle socket status updates
-  useEffect(() => {
-    const handleStatusUpdate = (data: { CallStatus: string }) => {
-      console.log("Socket status update:::::", data.CallStatus);
-      if (!isIncomingCall || data.CallStatus === 'completed') {
-        setStatus(data.CallStatus);
-      }
-    };
-
-    socket.on('call_status_update', handleStatusUpdate);
-
-    return () => {
-      socket.off('call_status_update', handleStatusUpdate);
-    };
-  }, [isIncomingCall]);
-
-  // Set up call event listeners
-  const setupCallEventListeners = (callObj: any) => {
-    if (!callObj) return;
-
-    console.log('Setting up call event listeners');
-
-    callObj.on('accept', () => {
-      console.log('Call accepted by remote party');
-      setStatus('in-progress');
-      setCall(callObj);
-      callAcceptedRef.current = true;
-    });
-
-    callObj.on('disconnect', () => {
-      console.log('Call disconnected');
-      setStatus('completed');
-      setCall(null);
-      setIsMuted(false);
-    });
-
-    callObj.on('cancel', () => {
-      console.log('Call cancelled');
-      setStatus('Call cancelled');
-      setCall(null);
-      setIsMuted(false);
-    });
-
-    callObj.on('reject', () => {
-      console.log('Call rejected');
-      setStatus('Call rejected');
-      setCall(null);
-      setIsMuted(false);
-    });
-
-    callObj.on('error', (error: any) => {
-      console.log('Call error:', error);
-      setStatus(`Call error: ${error.message}`);
-      setCall(null);
-      setIsMuted(false);
-    });
-
-    callObj.on('ringing', () => {
-      console.log('Call is ringing');
-      setStatus('ringing');
-      setCall(callObj);
-    });
-
-    callObj.on('connecting', () => {
-      console.log('Call is connecting');
-      setStatus('connecting');
-      setCall(callObj);
-    });
-  };
 
   // Call owner
   const callOwner = () => {
@@ -241,68 +115,20 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
       setStatus('calling');
       setCall(newCall);
       setIsMuted(false);
-      // setupCallEventListeners(newCall);
     } else {
       console.error("Failed to initiate call");
       setStatus("Call failed to initiate");
     }
   };
-  useEffect(()=>{
-    if(status === 'completed'){
-     setIsIncomingCall(false)
-    }
-  },[status])
+
   // Hang up call
   const hangup = () => {
     if (call) {
-      disconnectDevice()
+      disconnectDevice();
     }
-    setStatus('completed')
+    setStatus('completed');
     setCall(null);
     setIsMuted(false);
-    setCallAccepted(false)
-  };
-
-  // Accept incoming call
-  const acceptCall = () => {
-    if (!incomingConn) {
-      console.error("No incoming connection to accept");
-      return;
-    }
-    incomingConn.accept();
-    setStatus('in-progress');
-    setIsIncomingCall(false);
-    setCallAccepted(true);
-    callAcceptedRef.current = true;
-    setCall(incomingConn);
-    setIsMuted(false);
-
-    // setupCallEventListeners(incomingConn);
-
-    if (autoRejectTimeout.current) {
-      clearTimeout(autoRejectTimeout.current);
-      autoRejectTimeout.current = null;
-    }
-  };
-
-  // Reject incoming call
-  const rejectCall = () => {
-    if (!incomingConn) {
-      console.error("No incoming connection to reject");
-      return;
-    }
-
-    console.log('Rejecting incoming call');
-    incomingConn.reject();
-    setStatus('Call rejected');
-    setCallAccepted(false);
-    callAcceptedRef.current = false;
-    setIsIncomingCall(false);
-    setIncomingConn(null);
-    if (autoRejectTimeout.current) {
-      clearTimeout(autoRejectTimeout.current);
-      autoRejectTimeout.current = null;
-    }
   };
 
   // Toggle mute
@@ -373,16 +199,6 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
   return (
     <>
       <div className="w-full h-[40vh] mx-auto rounded-2xl bg-slate-50 p-10 relative shadow flex flex-col justify-between font-sans">
-        {/* Show incoming call modal */}
-        {isIncomingCall && (
-          <IncomingCallModal
-            callerNumber={callerNumber}
-            callAccepted={callAccepted}
-            acceptCall={acceptCall}
-            rejectCall={rejectCall}
-          />
-        )}
-
         {/* Post Call Form Modal */}
         <PostCallForm
           isOpen={isPostCallFormOpen}
