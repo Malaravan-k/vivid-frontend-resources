@@ -6,9 +6,6 @@ phases:
   install:
     commands:
       - ls -lhrt
-      # - cd ${GitHubRepo}
-      # - npm install --legacy-peer-deps
-      # - npm install --force
   pre_build:
     commands:
       - echo $STAGE
@@ -16,12 +13,10 @@ phases:
   build:
     commands:
       - echo $STAGE
-      # - npm install -g aws-cli
-      # - npm install react-scripts
-      # - npm install react-scripts@5.0.1
       - npm run build
+      - ls -la
       - aws s3 rm s3://$SOURCES3BUCKET/ --recursive --exclude "apk-file/*" --exclude "apk-file/*/*"
-      - aws s3 sync --delete ./build/ s3://$SOURCES3BUCKET/ --cache-control "max-age=31536000,public,immutable" --exclude "apk-file/*"
+      - aws s3 sync --delete ./dist/ s3://$SOURCES3BUCKET/ --cache-control "max-age=31536000,public,immutable" --exclude "apk-file/*"
       - aws cloudfront create-invalidation --distribution-id $CLOUDFRONTDISTRIBUTION --paths "/*"
 cache:
   paths:
