@@ -8,7 +8,6 @@ import {  Search } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import {dispatch, RootState} from '../../store/index'
 import { casesActions } from '../../store/actions/cases.actions';
-import { callerActions } from '../../store/actions/caller.action.js';
 
 const CasesTable = () => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -20,16 +19,9 @@ const CasesTable = () => {
   },[currentPage])
 
 
-
-   useEffect(()=>{
-   dispatch(callerActions.getCallerToken('vivid_agent_19844597890'))
-  },[])
-
   const handleRowClick = (item: Case) => {
   navigate(`/cases/${item.case_id}`, {
-    state: {
-      ownerName: item.owner_name
-    }
+    state: item
   });
 };
 
@@ -72,13 +64,13 @@ const CasesTable = () => {
             </p>
           </div>
           <div className="mt-3 sm:mt-0 w-full sm:w-64">
-            <div className="relative rounded-md shadow-sm">
+            <div className="relative rounded-md shadow-lg">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 type="text"
-                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md h-10"
                 placeholder="Search cases..."
               />
             </div>

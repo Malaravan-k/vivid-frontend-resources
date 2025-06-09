@@ -5,8 +5,7 @@ import Login from './pages/Login';
 import CasesTable from './pages/cases/CasesTable';
 import CaseDetail from './pages/cases/CaseDetail';
 import SettingsPage from './pages/settings/SettingsTable.jsx';
-import MessagesTable from './pages/messages/MessagesTable';
-import ChatScreen from './pages/messages/ChatScreen';
+import ChatApp from './pages/Messages/ChatApp.tsx';
 import AdminRoute from './AdminRoute';
 import NonAdminRoute from './NonAdminRoutes';
 
@@ -44,17 +43,7 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <NonAdminRoute>
-          <MessagesTable />
-        </NonAdminRoute>
-      </Layout>
-    ),
-  },
-  {
-    path: '/messages/:id',
-    element: (
-      <Layout>
-        <NonAdminRoute>
-          <ChatScreen />
+          <ChatApp/>
         </NonAdminRoute>
       </Layout>
     ),

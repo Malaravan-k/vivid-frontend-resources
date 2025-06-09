@@ -17,7 +17,6 @@ const CaseDetail = () => {
   const [caseData, setCaseData] = useState<any | null>(null);
   const { loading, record } = useSelector((state: RootState) => state.caseReducer)
   const { user } = useSelector((state: RootState) => state.sessionReducer)
-  console.log(user)
 
   useEffect(() => {
     if (user) {
@@ -35,18 +34,16 @@ const CaseDetail = () => {
       setSelectedPhoneNumber(defaultPhone);
     }
   }, [record]);
-
-
-
   useEffect(() => {
+    const navigation_state = location.state
+    console.log("navigation_state",navigation_state);
     dispatch(casesActions.loadRecord(id))
   }, [])
   const navigation_state = location.state
-  const phoneNumbers = [
-    caseData?.phones[0],
-    caseData?.phones[1],
-    caseData?.phones[2],
-  ].filter(Boolean);
+  const phoneNumbers = Array.isArray(caseData?.phones)
+    ? caseData.phones.filter(Boolean).slice(0, 3)
+    : [];
+
 
   if (loading) {
     return (
@@ -75,7 +72,8 @@ const CaseDetail = () => {
   }
 
   return (
-    <div>
+    <>
+    {caseData ? (<div>
       <div className="mb-4">
         <Button
           variant="outline"
@@ -87,16 +85,9 @@ const CaseDetail = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Case Details</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">ID: {caseData.case_id}</p>
-          </div>
-        </div>
-
         <div className="px-4 py-5 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 p-4 rounded-lg shadow-md space-y-6">
+            <div className="bg-slate-50 p-10 rounded-lg shadow-md space-y-6">
               <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Owner Information</h4>
 
               <div className="space-y-2">
@@ -113,19 +104,19 @@ const CaseDetail = () => {
                   <p className="text-md text-gray-900">Phone 1: <span className="text-sm font-medium  text-gray-500">{phoneNumbers[2] || 'N/A'}</span></p>
                 </div>
 
-               <div className='flex gap-5'>
-                {phoneNumbers.map((phone, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedPhoneNumber(phone)}
-                    className={`text-sm px-4 py-1 rounded-full transition border ${selectedPhoneNumber === phone
+                <div className='flex gap-5'>
+                  {phoneNumbers.map((phone, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedPhoneNumber(phone)}
+                      className={`text-sm px-4 py-1 rounded-full transition border ${selectedPhoneNumber === phone
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-blue-100 text-blue-600 border-blue-200 hover:bg-blue-200'
-                      }`}
-                  >
-                    Phone {index + 1}
-                  </button>
-                ))}
+                        }`}
+                    >
+                      Phone {index + 1}
+                    </button>
+                  ))}
                 </div>
 
               </div>
@@ -158,11 +149,29 @@ const CaseDetail = () => {
                 </div>
               </div>
             </div>
-            <PhoneDashboard agentNumber={agentNumber} ownerNumber={selectedPhoneNumber} />
+            <div>
+              <PhoneDashboard agentNumber={agentNumber} ownerNumber={selectedPhoneNumber} />
+            </div>
+
           </div>
         </div>
       </div>
-    </div>
+    </div> ):(
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="text-center py-10">
+          <h3 className="text-lg font-medium text-gray-900">Case not found</h3>
+          <p className="mt-2 text-sm text-gray-500">The case you're looking for doesn't exist or you don't have access.</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => navigate('/cases')}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cases
+          </Button>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 
