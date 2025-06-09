@@ -20,7 +20,8 @@ const CaseDetail = () => {
 
   useEffect(() => {
     if (user) {
-      setAgentNumber(user['custom:mobileNumber'])
+      setAgentNumber(`+${user['custom:mobileNumber']}`)
+      
     }
   }, [user])
   useEffect(() => {

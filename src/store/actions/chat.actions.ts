@@ -1,6 +1,7 @@
 import { Dispatch } from "@reduxjs/toolkit";
 import { chatServices } from "../services/chat.services";
 import { chatConstants } from "../constants/chat.constants";
+import { NavigateFunction } from "react-router-dom";
 
 function getStreamToken(userNo: string, ownerNo: string) {
   return (dispatch: Dispatch) => {
@@ -149,14 +150,14 @@ function createUser(phoneNumber: string, name?: string) {
 }
 
 
-function createNewUser(agent_no: string, customer_no: string) {
+function createNewUser(agent_no: string, customer_no: string , navigate?:NavigateFunction) {
   return (dispatch: Dispatch) => {
     dispatch(request());
     chatServices.createNewUser( agent_no, customer_no ).then(
       (res) => {
         console.log("create chat user resss",res)
         dispatch(success(res));
-        // Refresh users list
+        navigate('/messages')
       },
       (error) => {
         if (error && error.message) {

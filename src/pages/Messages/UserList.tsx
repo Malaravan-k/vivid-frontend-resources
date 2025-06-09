@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Phone, Plus } from 'lucide-react';
+import { Search, Phone } from 'lucide-react';
 
 interface User {
   id: string;
@@ -13,19 +13,14 @@ interface UserListProps {
   users: User[];
   selectedUser: User | null;
   onUserSelect: (user: User) => void;
-  onCreateUser: (phoneNumber: string, name?: string) => Promise<void>;
 }
 
 const UserList: React.FC<UserListProps> = ({
   users,
   selectedUser,
   onUserSelect,
-  onCreateUser,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateUser, setShowCreateUser] = useState(false);
-  const [newUserPhone, setNewUserPhone] = useState('');
-  const [creating, setCreating] = useState(false);
 
   const filteredUsers = users.filter((user: User) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -33,20 +28,7 @@ const UserList: React.FC<UserListProps> = ({
     user.id.includes(searchTerm)
   );
 
-  const handleCreateUser = async () => {
-    if (newUserPhone.trim() && !creating) {
-      try {
-        setCreating(true);
-        await onCreateUser(newUserPhone, newUserPhone);
-        setNewUserPhone('');
-        setShowCreateUser(false);
-      } catch (error) {
-        console.error('Error creating user:', error);
-      } finally {
-        setCreating(false);
-      }
-    }
-  };
+
 
   const formatLastActive = (lastActive: string) => {
     if (!lastActive) return '';

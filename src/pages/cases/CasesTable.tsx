@@ -4,27 +4,50 @@ import Table from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { Case } from '../../types';
-import {  Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useSelector } from 'react-redux';
-import {dispatch, RootState} from '../../store/index'
+import { dispatch, RootState } from '../../store/index'
 import { casesActions } from '../../store/actions/cases.actions';
-
+ 
 const CasesTable = () => {
   const [currentPage, setCurrentPage] = useState(0);
+  const [searchText, setSearchText] = useState('');
   const navigate = useNavigate();
-  const {records , loading ,total} = useSelector((state:RootState)=>state.caseReducer)
+  const { records, loading, total } = useSelector((state: RootState) => state.caseReducer);
   const pageSize = 10;
-  useEffect(()=>{
-    dispatch(casesActions.loadRecords({page:currentPage, pageSize:pageSize}))
-  },[currentPage])
-
-
+ 
+  useEffect(() => {
+    dispatch(casesActions.loadRecords({
+      page: currentPage,
+      pageSize: pageSize,
+      filter: searchText.trim()
+    }));
+  }, [currentPage, searchText]);
+ 
   const handleRowClick = (item: Case) => {
-  navigate(`/cases/${item.case_id}`, {
-    state: item
-  });
-};
-
+    navigate(`/cases/${item.case_id}`, {
+      state: item
+    });
+  };
+ 
+  const handleSearch = () => {
+    // Reset to first page when searching
+    setCurrentPage(0);
+    dispatch(casesActions.loadRecords({
+      filter: searchText.trim()
+    }));
+  };
+ 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+ 
+  const handleSearchIconClick = () => {
+    handleSearch();
+  };
+ 
   const columns = [
     {
       header: 'Case ID',
@@ -40,11 +63,11 @@ const CasesTable = () => {
     },
     {
       header: 'Mobile Number 2',
-      accessor: 'mobile_number_1',
+      accessor: 'mobile_number_2', // Fixed: was mobile_number_1
     },
     {
       header: 'Mobile Number 3',
-      accessor: 'mobile_number_1',
+      accessor: 'mobile_number_3', // Fixed: was mobile_number_1
     },
     {
       header: 'Status',
@@ -52,7 +75,7 @@ const CasesTable = () => {
       className: 'text-center',
     },
   ];
-
+ 
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
@@ -66,10 +89,16 @@ const CasesTable = () => {
           <div className="mt-3 sm:mt-0 w-full sm:w-64">
             <div className="relative rounded-md shadow-lg">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+                <Search
+                  className="h-5 w-5 text-gray-400 cursor-pointer pointer-events-auto hover:text-gray-600"
+                  onClick={handleSearchIconClick}
+                />
               </div>
               <input
                 type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onKeyPress={handleKeyPress}
                 className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md h-10"
                 placeholder="Search cases..."
               />
@@ -96,5 +125,6 @@ const CasesTable = () => {
     </div>
   );
 };
-
+ 
 export default CasesTable;
+ 
