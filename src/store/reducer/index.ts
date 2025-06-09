@@ -6,7 +6,7 @@ import sessionReducer from './session.reducer'
 import userReducer from './user.reducers'
 import caseReducer from './cases.reducer';
 import snackbar from './snackbar';
-import messageReducer from './message.reducer';
+import chatReducer from './chat.reducer';
 
 const rootReducer = combineReducers({
 
@@ -15,12 +15,12 @@ const rootReducer = combineReducers({
   caseReducer,
   loaderReducer,
   snackbar,
-  messageReducer
+  chatReducer
 });
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['sessionReducer', 'userReducer','caseReducer','loaderReducer','snackbar','messageReducer'] // reducers you want to persist
+  whitelist: ['sessionReducer', 'userReducer','caseReducer','loaderReducer','snackbar', 'chatReducer'] // reducers you want to persist
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

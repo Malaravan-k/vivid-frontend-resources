@@ -61,9 +61,7 @@ const Layout = ({ children }: LayoutProps) => {
   }, [isLoggedIn, user]);
 
   const initializeTwilioDevice = useCallback(() => {
-    // Only initialize if user is logged in and exists
     if (!isLoggedIn || !user) return;
-
     const storedToken = localStorage.getItem('twilioToken');
     if (storedToken) {
       console.log("Initializing Twilio device with existing token");

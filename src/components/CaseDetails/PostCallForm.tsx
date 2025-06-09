@@ -78,6 +78,7 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
     e.preventDefault();
     if (validateForm()) {
       onSubmit(formData);
+      console.log("formData",formData)
       onClose();
     }
   };

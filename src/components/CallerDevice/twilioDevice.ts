@@ -1,7 +1,7 @@
 import { Device } from '@twilio/voice-sdk';
 
 let device: Device | null = null;
-let activeConnection: any = null; // Track active connection
+let activeConnection: any = null;
 
 export const initializeDevice = (
   token: string,
@@ -20,14 +20,17 @@ export const initializeDevice = (
     });
 
     device.on('registered', () => {
+      console.log("registered")
       onStatusChange('Device ready');
     });
 
     device.on('unregistered', () => {
+      console.log("unregistered")
       onStatusChange('Device offline');
     });
 
     device.on('error', (error) => {
+      console.log("error")
       console.error('Device error:', error);
       onStatusChange(`Error: ${error.message}`);
     });
@@ -88,8 +91,8 @@ export const getDevice = (token?: string): Device | null => {
 };
 export const disconnectDevice = () => {
   if (device) {
-    console.log("Disconnecting all calls");
     try {
+      console.log("Disconnecting all calls");
       device.disconnectAll();
     } catch (error) {
       console.error("Error disconnecting device:", error);

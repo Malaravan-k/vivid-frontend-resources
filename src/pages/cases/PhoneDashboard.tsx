@@ -4,9 +4,10 @@ import io from 'socket.io-client';
 import { MdMic, MdMicOff } from 'react-icons/md';
 import { FiPhone } from 'react-icons/fi';
 import { MdPhoneInTalk } from 'react-icons/md';
+import { BiMessageRounded } from 'react-icons/bi';
 import { motion } from 'framer-motion';
 
-import { RootState } from '../../store/index';
+import { dispatch, RootState } from '../../store/index';
 import {
   getDevice,
   connectCall,
@@ -14,18 +15,25 @@ import {
 } from '../../components/CallerDevice/twilioDevice';
 import PostCallForm from '../../components/CaseDetails/PostCallForm';
 import { formatCallDuration } from '../../utils/formatters';
+import { chatActions } from '../../store/actions/chat.actions';
 
 type PhoneDashboardProps = {
   agentNumber: string | null;
   ownerNumber: string | null;
 };
+type TwilioCall = {
+  mute: (shouldMute: boolean) => void;
+  isMuted?: boolean;
+  sendDigits?: (digits: string) => void;
+  // Add other methods/properties you use
+};
 
-const tokenurl = 'http://100.24.49.133:5000';
+const tokenurl = import.meta.env.VITE_APP_CALLING_SYSTEM_URL;
 const socket = io(tokenurl);
 
 const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber }) => {
   const [status, setStatus] = useState('Disconnected');
-  const [call, setCall] = useState<any | null>(null);
+ const [call, setCall] = useState<TwilioCall | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
@@ -85,7 +93,7 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
   // Check if call is completed and enable post call button
   useEffect(() => {
-    const completedStatuses = ['completed', 'disconnected', 'call rejected', 'missed call'];
+    const completedStatuses = ['completed'];
     if (completedStatuses.some(s => status.toLowerCase().includes(s.toLowerCase()))) {
       setIsPostCallAvailable(true);
     } else if (status.toLowerCase() === 'in-progress' || status.toLowerCase() === 'ringing') {
@@ -110,7 +118,7 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
     setLastCallerNumber(ownerNumber);
     const newCall = connectCall({ To: ownerNumber, agent: agentNumber });
-
+   console.log("newCall",newCall)
     if (newCall) {
       setStatus('calling');
       setCall(newCall);
@@ -121,38 +129,48 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
     }
   };
 
+  // Handle message action
+  const handleMessage = () => {
+    dispatch(chatActions.createNewUser(agentNumber,ownerNumber))
+  };
+
   // Hang up call
   const hangup = () => {
     if (call) {
       disconnectDevice();
     }
-    setStatus('completed');
+    setStatus('disconnected');
     setCall(null);
     setIsMuted(false);
   };
 
   // Toggle mute
   const handleToggleMute = () => {
-    if (!call) {
-      console.error('No active call to mute');
+  if (!call) {
+    console.error('No active call to mute');
+    return;
+  }
+
+  try {
+    const newMuteState = !isMuted;
+    console.log('Setting mute state to:', newMuteState);
+    if (call.isMuted && call.mute) {
+      call.mute(newMuteState);
+      setIsMuted(newMuteState);
+    } else if (typeof call.sendDigits === 'function') {
+      // For some older versions or different call objects
+      call.sendDigits(newMuteState ? 'mute' : 'unmute');
+      setIsMuted(newMuteState);
+    } else {
+      console.error('Mute functionality not available on this call object');
       return;
     }
-
-    try {
-      const newMuteState = !isMuted;
-      console.log('Setting mute state to:', newMuteState);
-
-      if (typeof call.mute === 'function') {
-        call.mute(newMuteState);
-        setIsMuted(newMuteState);
-        console.log('Mute operation completed');
-      } else {
-        console.error('Mute function not available on call object');
-      }
-    } catch (error) {
-      console.error('Error toggling mute:', error);
-    }
-  };
+    
+    console.log('Mute operation completed');
+  } catch (error) {
+    console.error('Error toggling mute:', error);
+  }
+};
 
   // Post Call handlers
   const handlePostCallClick = () => {
@@ -246,18 +264,40 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
           </div>
         )}
 
-        {/* Call/Hangup button */}
+        {/* Call/Hangup and Message buttons */}
         <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2">
-          <button
-            className={`${isCallActionable
-              ? 'bg-red-600 hover:bg-red-700'
-              : 'bg-blue-600 hover:bg-blue-700'
-              } text-white font-bold py-2 px-6 rounded-xl text-sm min-w-[100px] transition-colors duration-200`}
-            onClick={isCallActionable ? hangup : callOwner}
-            disabled={!ownerNumber && !isCallActionable}
-          >
-            {isCallActionable ? 'Hangup' : 'Call'}
-          </button>
+          {isCallActionable ? (
+            // Show only Hangup button when call is active
+            <button
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-xl text-sm min-w-[100px] transition-colors duration-200"
+              onClick={hangup}
+            >
+              Hangup
+            </button>
+          ) : (
+            // Show both Message and Call buttons when no active call
+            <div className="flex space-x-3">
+              {/* Message Button */}
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl text-sm min-w-[100px] transition-colors duration-200 flex items-center justify-center space-x-2"
+                onClick={handleMessage}
+                disabled={!ownerNumber}
+                title="Send Message"
+              >
+                <BiMessageRounded size={18} />
+                <span>Message</span>
+              </button>
+
+              {/* Call Button */}
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl text-sm min-w-[100px] transition-colors duration-200"
+                onClick={callOwner}
+                disabled={!ownerNumber}
+              >
+                Call
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
