@@ -26,6 +26,11 @@ interface OwnerInfo {
   propertyStatus: string;
 }
 
+interface StreamTokenData {
+  token: string;
+  api_key: string;
+}
+
 const ChatApp: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +41,7 @@ const ChatApp: React.FC = () => {
   const [ownerInfo, setOwnerInfo] = useState<any | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 const { loading: casesLoading, record } = useSelector((state: RootState) => state.caseReducer);
+const { user } = useSelector((state: RootState) => state.sessionReducer);
 console.log("casesLoading",casesLoading)
 console.log("record",record);
 
@@ -43,38 +49,67 @@ useEffect(()=>{
   setOwnerInfo(record)
 }, [record])
   
-
-  const agentNumber = import.meta.env.VITE_AGENT_NUMBER || '+19844597890';
+  const agentNumber = `+${user?.['custom:mobileNumber']}`;
   const apiEndpoint = import.meta.env.VITE_APP_CALLING_SYSTEM_URL;
-  const loadInfoEndpoint = import.meta.env.VITE_APP_BASE_URL
 
-  console.log("selectedUser:::::",selectedUser)
+  // localStorage keys
+  const STREAM_TOKEN_KEY = 'stream_token_data';
 
   useEffect(() => {
     initializeChat();
   }, []);
+
+  // Helper function to get stored token data
+  const getStoredTokenData = (): StreamTokenData | null => {
+    try {
+      const storedData = localStorage.getItem(STREAM_TOKEN_KEY);
+      if (storedData) {
+        const tokenData: StreamTokenData = JSON.parse(storedData);
+        return tokenData;
+      }
+    } catch (error) {
+      console.error('Error reading stored token:', error);
+      localStorage.removeItem(STREAM_TOKEN_KEY);
+    }
+    return null;
+  };
+  const storeTokenData = (token: string, api_key: string): void => {
+    const tokenData: StreamTokenData = {
+      token,
+      api_key
+    };
+    localStorage.setItem(STREAM_TOKEN_KEY, JSON.stringify(tokenData));
+  };
 
   const initializeChat = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get stream token
-      const response = await fetch(`${apiEndpoint}/stream-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_no: agentNumber,
-        }),
-      });
+      let token: string;
+      let api_key: string;
+      const storedTokenData = getStoredTokenData();
+      if (storedTokenData) {
+        token = storedTokenData.token;
+        api_key = storedTokenData.api_key;
+      } else {
+        const response = await fetch(`${apiEndpoint}/stream-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_no: agentNumber,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const responseData = await response.json();
+        token = responseData.token;
+        api_key = responseData.api_key;
+        storeTokenData(token, api_key);
       }
 
-      const { token, api_key } = await response.json();
-
-      // Initialize Stream client
       const streamClient = StreamChat.getInstance(api_key);
       const userId = agentNumber.replace(/\D/g, '');
       
@@ -89,12 +124,18 @@ useEffect(()=>{
       setClient(streamClient);
       setCurrentUserId(userId);
 
-      // Load users
       await loadUsers(streamClient);
 
       setLoading(false);
     } catch (err) {
       console.error('Error initializing chat:', err);
+      
+      // If there's an authentication error, clear stored credentials and retry once
+      if (err instanceof Error && (err.message.includes('401') || err.message.includes('403'))) {
+        localStorage.removeItem(STREAM_TOKEN_KEY);
+        console.log('Cleared stored credentials due to authentication error');
+      }
+      
       setError(err instanceof Error ? err.message : 'Failed to initialize chat');
       setLoading(false);
     }
@@ -124,27 +165,6 @@ useEffect(()=>{
     }
   };
 
-  const createUser = async (phoneNumber: string, name?: string) => {
-    try {
-      if (!client) return;
-
-      const userId = phoneNumber.replace(/\D/g, '');
-      
-      // Create user in GetStream
-      await client.upsertUser({
-        id: userId,
-        name: name || phoneNumber,
-        phone: phoneNumber,
-      });
-
-      // Reload users
-      await loadUsers(client);
-    } catch (err) {
-      console.error('Error creating user:', err);
-      throw err;
-    }
-  };
-
   const selectUser = async (user: User) => {
     try {
       if (!client || !currentUserId) return;
@@ -170,34 +190,7 @@ useEffect(()=>{
     }
   };
 
-  const loadOwnerInfo = async (userId: string) => {
-    try {
-      // Try to fetch from API, fallback to mock data
-      try {
-        const response = await fetch(`${loadInfoEndpoint}/case-details/mobile?=${userId}`);
-        if (response.ok) {
-          const data = await response.json();
-          setOwnerInfo(data);
-          return;
-        }
-      } catch (apiError) {
-        console.log('API not available, using mock data');
-      }
 
-      // Mock data fallback
-      // setOwnerInfo({
-      //   idCase: '25SP00002567',
-      //   address: '969 Cox Rd, Gastonia, NC 28054-3455, USA',
-      //   filingDate: '24.12.2025',
-      //   assessedValue: '$56,000',
-      //   amountOwed: '$34,000',
-      //   propertyType: 'Single Flat',
-      //   propertyStatus: 'Active',
-      // });
-    } catch (err) {
-      console.error('Error loading owner info:', err);
-    }
-  };
 
   if (loading) {
     return (
@@ -246,7 +239,6 @@ useEffect(()=>{
           users={users}
           selectedUser={selectedUser}
           onUserSelect={selectUser}
-          onCreateUser={createUser}
         />
         <ChatWindow 
           selectedUser={selectedUser}

@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import React, {useEffect, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import { MdMic, MdMicOff } from 'react-icons/md';
 import { FiPhone } from 'react-icons/fi';
@@ -7,7 +6,7 @@ import { MdPhoneInTalk } from 'react-icons/md';
 import { BiMessageRounded } from 'react-icons/bi';
 import { motion } from 'framer-motion';
 
-import { dispatch, RootState } from '../../store/index';
+import { dispatch } from '../../store/index';
 import {
   getDevice,
   connectCall,
@@ -16,6 +15,7 @@ import {
 import PostCallForm from '../../components/CaseDetails/PostCallForm';
 import { formatCallDuration } from '../../utils/formatters';
 import { chatActions } from '../../store/actions/chat.actions';
+import { useNavigate } from 'react-router-dom';
 
 type PhoneDashboardProps = {
   agentNumber: string | null;
@@ -25,13 +25,13 @@ type TwilioCall = {
   mute: (shouldMute: boolean) => void;
   isMuted?: boolean;
   sendDigits?: (digits: string) => void;
-  // Add other methods/properties you use
 };
 
 const tokenurl = import.meta.env.VITE_APP_CALLING_SYSTEM_URL;
 const socket = io(tokenurl);
 
 const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber }) => {
+  const navigate = useNavigate()
   const [status, setStatus] = useState('Disconnected');
  const [call, setCall] = useState<TwilioCall | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -44,8 +44,6 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
   // Refs
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { user } = useSelector((state: RootState) => state.sessionReducer);
-  const userRole = user?.["custom:role"];
 
   // Handle socket status updates
   useEffect(() => {
@@ -131,7 +129,7 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
   // Handle message action
   const handleMessage = () => {
-    dispatch(chatActions.createNewUser(agentNumber,ownerNumber))
+    dispatch(chatActions.createNewUser(agentNumber,ownerNumber , navigate))
   };
 
   // Hang up call
@@ -144,7 +142,6 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
     setIsMuted(false);
   };
 
-  // Toggle mute
   const handleToggleMute = () => {
   if (!call) {
     console.error('No active call to mute');
@@ -172,7 +169,6 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
   }
 };
 
-  // Post Call handlers
   const handlePostCallClick = () => {
     setIsPostCallFormOpen(true);
   };

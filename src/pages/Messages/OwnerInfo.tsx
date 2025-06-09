@@ -8,7 +8,7 @@ interface User {
 }
 
 interface OwnerInfo {
-  idCase: string;
+  case_id: string;
   address: string;
   filling_date: string;
   assessed_value: string;
@@ -62,7 +62,7 @@ const OwnerInfo: React.FC<OwnerInfoProps> = ({ selectedUser, ownerInfo , casesLo
   const infoItems = [
     {
       label: 'ID/Case',
-      value: ownerInfo?.idCase,
+      value: ownerInfo?.case_id,
       icon: FileText,
     },
     {
