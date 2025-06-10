@@ -27,9 +27,7 @@ const UserList: React.FC<UserListProps> = ({
     user.phone.includes(searchTerm) ||
     user.id.includes(searchTerm)
   );
-
-
-
+  
   const formatLastActive = (lastActive: string) => {
     if (!lastActive) return '';
     const now = new Date();
@@ -64,7 +62,7 @@ const UserList: React.FC<UserListProps> = ({
       {/* Messages Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-800">Messages</span>
+          <span className="font-medium text-gray-800">User List</span>
           <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
             {filteredUsers.length}
           </span>

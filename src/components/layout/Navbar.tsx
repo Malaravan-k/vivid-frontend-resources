@@ -28,6 +28,7 @@ const Navbar = () => {
     : [
         { name: "Cases", path: "/cases" },
         { name: "Messages", path: "/messages" },
+        {name: "Call Logs", path:'/callLogs'}
       ];
 
   return (

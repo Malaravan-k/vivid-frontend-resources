@@ -6,6 +6,7 @@ import CasesTable from './pages/cases/CasesTable';
 import CaseDetail from './pages/cases/CaseDetail';
 import SettingsPage from './pages/settings/SettingsTable.jsx';
 import ChatApp from './pages/Messages/ChatApp.tsx';
+import CallLogs from './pages/callLogs/callLogs.tsx';
 import AdminRoute from './AdminRoute';
 import NonAdminRoute from './NonAdminRoutes';
 
@@ -44,6 +45,16 @@ const router = createBrowserRouter([
       <Layout>
         <NonAdminRoute>
           <ChatApp/>
+        </NonAdminRoute>
+      </Layout>
+    ),
+  },
+  {
+    path: '/callLogs',
+    element: (
+      <Layout>
+        <NonAdminRoute>
+          <CallLogs/>
         </NonAdminRoute>
       </Layout>
     ),

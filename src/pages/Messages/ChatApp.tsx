@@ -194,7 +194,7 @@ useEffect(()=>{
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen  flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Initializing chat...</p>
@@ -224,17 +224,17 @@ useEffect(()=>{
   }
 
   return (
-    <div className="h-[600px] bg-gray-100">
+    <div className="rounded-xl overflow-hidden bg-gray-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      {/* <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
           <p className="text-gray-600">Acquisition Managers Portal</p>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Content */}
-      <div className="flex h-[600px] bg-white">
+      <div className="flex h-[700px] bg-white ">
         <UserList 
           users={users}
           selectedUser={selectedUser}

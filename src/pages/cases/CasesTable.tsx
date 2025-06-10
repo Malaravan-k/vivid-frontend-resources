@@ -87,7 +87,7 @@ const CasesTable = () => {
             </p>
           </div>
           <div className="mt-3 sm:mt-0 w-full sm:w-64">
-            <div className="relative rounded-md shadow-lg">
+            <div className="relative rounded-md border-2 border-gray-300">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search
                   className="h-5 w-5 text-gray-400 cursor-pointer pointer-events-auto hover:text-gray-600"
