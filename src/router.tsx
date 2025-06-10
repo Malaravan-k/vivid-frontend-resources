@@ -6,7 +6,7 @@ import CasesTable from './pages/cases/CasesTable';
 import CaseDetail from './pages/cases/CaseDetail';
 import SettingsPage from './pages/settings/SettingsTable.jsx';
 import ChatApp from './pages/Messages/ChatApp.tsx';
-import CallLogs from './pages/callLogs/callLogs.tsx';
+import VoiceTable from './pages/VoiceMessage/VoiceTable.jsx';
 import AdminRoute from './AdminRoute';
 import NonAdminRoute from './NonAdminRoutes';
 
@@ -50,11 +50,11 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/callLogs',
+    path: '/VoiceMessages',
     element: (
       <Layout>
         <NonAdminRoute>
-          <CallLogs/>
+          <VoiceTable />
         </NonAdminRoute>
       </Layout>
     ),
