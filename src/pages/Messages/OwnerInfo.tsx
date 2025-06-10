@@ -101,8 +101,7 @@ const OwnerInfo: React.FC<OwnerInfoProps> = ({ selectedUser, ownerInfo , casesLo
     <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Owner Information</h2>
-        <div className="w-full h-1 bg-blue-600 rounded-full"></div>
+        <h2 className="text-lg font-semibold text-gray-900 ">Owner Information</h2>
       </div>
 
       {/* Owner Information */}
