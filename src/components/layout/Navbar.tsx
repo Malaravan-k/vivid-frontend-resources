@@ -4,7 +4,7 @@ import { LogOut, Menu, User } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { dispatch, RootState } from "../../store";
 import { sessionActions } from "../../store/actions/session.actions";
-import IconImage from '../../assets/icon.png';
+import IconImage from '../../assets/Voxlane_logo_blue.png';
 import { useSelector } from "react-redux";
 
 const Navbar = () => {
@@ -39,11 +39,11 @@ const Navbar = () => {
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <Link to={isAdmin ? "/settings" : "/cases"} className="flex items-center space-x-3">
-                  <div className="w-8 h-8">
-                    <img src={IconImage} alt="Icon" />
+                  <div className="">
+                    <img className="w-28 h-20" src={IconImage} alt="Icon" />
                   </div>
                   <span className="text-xl font-semibold text-gray-900">
-                    Vivid
+                    Voxlane
                   </span>
                 </Link>
               </div>

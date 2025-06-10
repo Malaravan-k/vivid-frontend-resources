@@ -7,6 +7,7 @@ import { dispatch } from '../../store';
 import { casesActions } from '../../store/actions/cases.actions';
 import { useSelector } from 'react-redux';
 import {RootState} from '../../store/index'
+import { useLocation } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -32,6 +33,8 @@ interface StreamTokenData {
 }
 
 const ChatApp: React.FC = () => {
+  const location = useLocation();
+  console.log("location",location)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<StreamChat | null>(null);
@@ -40,14 +43,52 @@ const ChatApp: React.FC = () => {
   const [activeChannel, setActiveChannel] = useState<any>(null);
   const [ownerInfo, setOwnerInfo] = useState<any | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-const { loading: casesLoading, record } = useSelector((state: RootState) => state.caseReducer);
-const { user } = useSelector((state: RootState) => state.sessionReducer);
-console.log("casesLoading",casesLoading)
-console.log("record",record);
-
-useEffect(()=>{
+  const { loading: casesLoading, record } = useSelector((state: RootState) => state.caseReducer);
+  const { user } = useSelector((state: RootState) => state.sessionReducer);
+  console.log("users",users)
+ useEffect(()=>{
   setOwnerInfo(record)
 }, [record])
+
+useEffect(() => {
+  if (location.state) {
+    const { customer_id, channel_id,agent_id} = location.state;
+
+    if (customer_id && channel_id && client && currentUserId) {
+      autoSelectUser(customer_id, channel_id , agent_id);
+    }
+  }
+}, [location.state, client, currentUserId]);
+
+
+const autoSelectUser = async (customer_id: User, channelId: string , agent_id :string) => {
+  try {
+    console.log("user>>>>>>>",customer_id)
+    console.log("channelId",channelId);
+    
+    // Use the passed channel ID to create or get the channel
+    const channel = client!.channel('messaging', channelId, {
+      members: [agent_id, customer_id],
+    });
+
+    await channel.watch();
+    setActiveChannel(channel);
+    const userToSelect = users.find(u => u.id === customer_id) || {
+        id: customer_id,
+        name: customer_id,
+        phone: customer_id
+      };
+      
+    setSelectedUser(userToSelect);
+    // Load owner info
+    const useMobile = true;
+    const Id = user?.name.replace('+', '');
+    dispatch(casesActions.loadRecord(Id, useMobile));
+  } catch (err) {
+    console.error('Error auto-selecting user:', err);
+  }
+};
+
   
   const agentNumber = `+${user?.['custom:mobileNumber']}`;
   const apiEndpoint = import.meta.env.VITE_APP_CALLING_SYSTEM_URL;
@@ -168,23 +209,21 @@ useEffect(()=>{
   const selectUser = async (user: User) => {
     try {
       if (!client || !currentUserId) return;
-
       setSelectedUser(user);
       console.log("user" , user)
-
+      console.log("location?.state?.channel_id",location?.state?.channel_id);
+      
       // Create or get existing channel
-      const channel = client.channel('messaging', {
-        members: [currentUserId, user.id],
+      const userId = user?.name.replace(/\D/g, '')
+      const channel = client.channel('messaging',location?.state?.channel_id,{
+        members: [`user_${currentUserId}`, `user_${userId}`],
       });
-
       await channel.watch();
       setActiveChannel(channel);
-
       // Load owner info
       const useMobile = true;
       const Id = user?.name.replace('+', '')
       dispatch(casesActions.loadRecord(Id , useMobile))
-      console.log("user",user)
     } catch (err) {
       console.error('Error selecting user:', err);
     }

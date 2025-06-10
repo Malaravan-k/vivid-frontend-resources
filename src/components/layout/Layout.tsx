@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useCallback, useState, useRef } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from './Navbar';
 import { useSelector, useDispatch } from 'react-redux';
@@ -15,16 +15,18 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const { loading } = useAuth();
+  const navigate = useNavigate()
   const { isLoggedIn, user } = useSelector((state: RootState) => state.sessionReducer);
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [callerNumber, setCallerNumber] = useState('');
   const [callAccepted, setCallAccepted] = useState(false);
   const [showIncomingModal, setShowIncomingModal] = useState(false);
   const [callStatus, setCallStatus] = useState('');
+  const [activeCall, setActiveCall] = useState<any>(null);
   const callAcceptedRef = useRef(false);
   const autoRejectTimeout = useRef<NodeJS.Timeout | null>(null);
   const dispatch = useDispatch();
-  
+
   const userRole = user?.["custom:role"];
   const agentNumber = user?.["custom:mobileNumber"];
   const agentId = `vivid_agent_${agentNumber?.replace('+', '')}`;
@@ -39,7 +41,7 @@ const Layout = ({ children }: LayoutProps) => {
 
     console.log("Incoming call with parameters:", conn.parameters);
     const from = conn.parameters.From || 'Unknown';
-    
+
     setCallerNumber(from);
     setIncomingCall(conn);
     setShowIncomingModal(true);
@@ -73,13 +75,11 @@ const Layout = ({ children }: LayoutProps) => {
   }, [agentId, dispatch, handleIncomingCall, isLoggedIn, user]);
 
   const acceptCall = async () => {
-    // Only allow accepting calls if user is logged in
     if (!isLoggedIn || !user) return;
 
-    console.log("Attempting to accept call");
     callAcceptedRef.current = true;
     setCallStatus('Connecting...');
-    
+
     if (autoRejectTimeout.current) {
       clearTimeout(autoRejectTimeout.current);
       autoRejectTimeout.current = null;
@@ -88,6 +88,9 @@ const Layout = ({ children }: LayoutProps) => {
     const success = acceptIncomingCall();
     if (success) {
       setCallAccepted(true);
+      setActiveCall(incomingCall); // Store the active call
+      navigate(`/cases/${callerNumber.replace('+', '')}`); // Navigate to specific case
+      setShowIncomingModal(false);
       setCallStatus('Call in progress');
     } else {
       setCallStatus('Failed to accept call');
@@ -96,13 +99,35 @@ const Layout = ({ children }: LayoutProps) => {
     }
   };
 
+  // Add call event listeners when active call changes
+  useEffect(() => {
+    if (!activeCall) return;
+
+    activeCall.on('disconnect', () => {
+      setActiveCall(null);
+      setCallStatus('Call ended');
+    });
+
+    activeCall.on('mute', (isMuted: boolean) => {
+      // Handle mute events if needed
+    });
+
+    return () => {
+      if (activeCall) {
+        activeCall.off('disconnect');
+        activeCall.off('mute');
+      }
+    };
+  }, [activeCall]);
+
+
   const rejectCall = () => {
     console.log("Rejecting call");
     rejectIncomingCall();
     setShowIncomingModal(false);
     setCallStatus('Call rejected');
     setCallAccepted(false);
-    
+
     if (autoRejectTimeout.current) {
       clearTimeout(autoRejectTimeout.current);
       autoRejectTimeout.current = null;
@@ -157,7 +182,7 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Only show incoming call modal if user is logged in */}
       {(isLoggedIn && user && showIncomingModal) && (
-        <IncomingCallModal 
+        <IncomingCallModal
           callerNumber={callerNumber}
           callAccepted={callAccepted}
           callStatus={callStatus}

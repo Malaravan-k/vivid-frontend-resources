@@ -134,12 +134,12 @@ const CaseDetail = () => {
                   <div className="space-y-2">
                     <div>
                       <p className="text-md text-gray-900">Assessed Value:
-                        <span className="text-sm font-medium text-gray-500">${caseData.assessed_value?.toLocaleString() || 'N/A'}</span>
+                        <span className="text-sm font-medium text-gray-500">{caseData.assessed_value?.toLocaleString() || 'N/A'}</span>
                       </p>
                     </div>
                     <div>
                       <p className="text-md text-gray-900">Amount Owed:
-                        <span className="text-sm font-medium text-gray-500">${caseData.amount_owed?.toLocaleString() || 'N/A'}</span>
+                        <span className="text-sm font-medium text-gray-500">{caseData.amount_owed?.toLocaleString() || 'N/A'}</span>
                       </p>
                     </div>
                     <div>

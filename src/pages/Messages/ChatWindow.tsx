@@ -22,8 +22,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   activeChannel,
   client,
 }) => {
+  console.log("activeChannel",activeChannel)
 
-  console.log("selectedUser",selectedUser)
   if (!selectedUser) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white">

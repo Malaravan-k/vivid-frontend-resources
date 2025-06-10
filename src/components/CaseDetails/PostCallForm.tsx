@@ -26,6 +26,8 @@ export interface PostCallFormData {
   gptFollowUpPlan: string;
 }
 
+type FocusedField = 'summary' | 'followup' | null;
+
 const PostCallForm: React.FC<PostCallFormProps> = ({ 
   isOpen, 
   onClose, 
@@ -47,6 +49,7 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Partial<PostCallFormData>>({});
+  const [focusedField, setFocusedField] = useState<FocusedField>(null);
 
   const handleInputChange = (field: keyof PostCallFormData, value: string | boolean) => {
     setFormData(prev => ({
@@ -78,13 +81,88 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
     e.preventDefault();
     if (validateForm()) {
       onSubmit(formData);
-      console.log("formData",formData)
+      console.log("formData", formData);
       onClose();
+    }
+  };
+
+  const handleFieldFocus = (field: FocusedField) => {
+    setFocusedField(field);
+  };
+
+  const handleSaveField = () => {
+    setFocusedField(null);
+  };
+
+  const handleClearField = () => {
+    if (focusedField === 'summary') {
+      handleInputChange('gptSummary', '');
+    } else if (focusedField === 'followup') {
+      handleInputChange('gptFollowUpPlan', '');
     }
   };
 
   if (!isOpen) return null;
 
+  // Render focused field view if either summary or followup is focused
+  if (focusedField) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center p-6 border-b">
+            <h2 className="text-xl font-semibold text-gray-800">
+              {focusedField === 'summary' ? 'GPT Summary' : 'GPT Follow Up Plan'}
+            </h2>
+            <button
+              onClick={() => setFocusedField(null)}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            <textarea
+              value={focusedField === 'summary' ? formData.gptSummary : formData.gptFollowUpPlan}
+              onChange={(e) => 
+                handleInputChange(
+                  focusedField === 'summary' ? 'gptSummary' : 'gptFollowUpPlan', 
+                  e.target.value
+                )
+              }
+              rows={15}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={
+                focusedField === 'summary' 
+                  ? 'Enter detailed GPT summary...' 
+                  : 'Enter detailed GPT follow up plan...'
+              }
+            />
+
+            <div className="flex justify-end space-x-4 pt-4">
+              <button
+                type="button"
+                onClick={handleClearField}
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveField}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal form view
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -292,9 +370,18 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
 
               {/* GPT Summary */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  GPT Summary
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    GPT Summary
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleFieldFocus('summary')}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Expand
+                  </button>
+                </div>
                 <textarea
                   value={formData.gptSummary}
                   onChange={(e) => handleInputChange('gptSummary', e.target.value)}
@@ -306,9 +393,18 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
 
               {/* GPT Follow up plan */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  GPT Follow up plan
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    GPT Follow up plan
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleFieldFocus('followup')}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    Expand
+                  </button>
+                </div>
                 <textarea
                   value={formData.gptFollowUpPlan}
                   onChange={(e) => handleInputChange('gptFollowUpPlan', e.target.value)}

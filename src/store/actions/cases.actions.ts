@@ -1,48 +1,19 @@
-import { Dispatch } from "@reduxjs/toolkit"
-import { casesServices } from "../services/cases.services"
-import { casesConstants } from "../constants/cases.constants"
+import { Dispatch } from "@reduxjs/toolkit";
+import { voiceMessageServices } from "../services/voicemessage.services";
+import { voiceMessageConstants } from "../constants/voicemessage.constants";
 
-function loadRecords(params?:any) {
-    return (dispatch: Dispatch) => {
-        dispatch(request())
-        casesServices.loadRecords(params).then(
-            (res) => {
-                const { response, error, message, total, page } = res
-                const records = response?.data
-                if (error) {
-                    dispatch(failure(error, message))
-                } else {
-                    dispatch(success(records, total, page))
-                }
-            }, (error) => {
-                if (error && error.message) {
-                    error = error.message
-                }
-                dispatch(failure(true, error.message))
-            }
-        )
-    }
-    function request() {
-        return { type: casesConstants.LOAD_CASES }
-    }
-    function success(records: any[], total?: number, page?: number) {
-        return { type: casesConstants.LOAD_CASES_SUCCESS, records, total, page }
-    }
-    function failure(error: any, message: any) {
-        return { type: casesConstants.LOAD_CASES_SUCCESS, error, message }
-    }
-}
-
-function loadRecord(id:any , useMobile?:any) {
-  return (dispatch:Dispatch) => {
-    dispatch(request(id));
-    casesServices.loadRecord(id , useMobile).then(
+// Load all voice messages
+function loadVoiceMessages(agentId: string) {
+  return (dispatch: Dispatch) => {
+    dispatch(request(agentId));
+    voiceMessageServices.getAllVoiceMessages(agentId).then(
       (res) => {
         const { response, error, message } = res;
+        const messages = response?.data || res;
         if (error) {
           dispatch(failure(true, message));
         } else {
-          dispatch(success(response));
+          dispatch(success(messages));
         }
       },
       (error) => {
@@ -53,19 +24,53 @@ function loadRecord(id:any , useMobile?:any) {
       }
     );
   };
-  function request(id:any) {
-    return { type: casesConstants.LOAD_CASE, id };
+
+  function request(agentId: string) {
+    return { type: voiceMessageConstants.LOAD_MESSAGES, agentId };
   }
-  function success(record:any) {
-    return { type: casesConstants.LOAD_CASE_SUCCESS, record };
+  function success(messages: any[]) {
+    return { type: voiceMessageConstants.LOAD_MESSAGES_SUCCESS, messages };
   }
-  function failure(error:any, message:any) {
-    return { type: casesConstants.LOAD_CASE_ERROR, error, message };
+  function failure(error: any, message: any) {
+    return { type: voiceMessageConstants.LOAD_MESSAGES_ERROR, error, message };
   }
 }
 
+// Load single voice message by ID
+function loadVoiceMessage(messageId: string) {
+  return (dispatch: Dispatch) => {
+    dispatch(request(messageId));
+    voiceMessageServices.getVoiceMessageDetails(messageId).then(
+      (res) => {
+        const { response, error, message } = res;
+        const messageDetails = response || res;
+        if (error) {
+          dispatch(failure(true, message));
+        } else {
+          dispatch(success(messageDetails));
+        }
+      },
+      (error) => {
+        if (error && error.message) {
+          error = error.message;
+        }
+        dispatch(failure(true, error.toString()));
+      }
+    );
+  };
 
-export const casesActions = {
-    loadRecords,
-    loadRecord
+  function request(messageId: string) {
+    return { type: voiceMessageConstants.LOAD_MESSAGE, messageId };
+  }
+  function success(messageDetails: any) {
+    return { type: voiceMessageConstants.LOAD_MESSAGE_SUCCESS, messageDetails };
+  }
+  function failure(error: any, message: any) {
+    return { type: voiceMessageConstants.LOAD_MESSAGE_ERROR, error, message };
+  }
 }
+
+export const voiceMessagesActions = {
+  loadVoiceMessages,
+  loadVoiceMessage,
+};

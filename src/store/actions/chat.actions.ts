@@ -12,10 +12,10 @@ function getStreamToken(userNo: string, ownerNo: string) {
           // Initialize Stream client with the token
           const userId = userNo.replace(/\D/g, '');
           const client = await chatServices.initializeStreamClient(userId, res.token, res.api_key);
-          
+
           dispatch(success(res));
           dispatch(initializeChat(client, []));
-          
+
           // Load users and channels after successful initialization
           dispatch(getUsers());
           dispatch(getUserChannels(userId));
@@ -107,11 +107,11 @@ function selectUser(user: any, currentUserId: string) {
   return async (dispatch: Dispatch) => {
     try {
       dispatch({ type: chatConstants.SELECT_USER, user });
-      
+
       // Get or create channel between current user and selected user
       const channel = await chatServices.getOrCreateChannel(currentUserId, user.id);
       dispatch({ type: chatConstants.SET_ACTIVE_CHANNEL, channel });
-      
+
       // Also fetch owner info for this user
       dispatch(getOwnerInfo(user.id));
     } catch (error) {
@@ -150,14 +150,17 @@ function createUser(phoneNumber: string, name?: string) {
 }
 
 
-function createNewUser(agent_no: string, customer_no: string , navigate?:NavigateFunction) {
+function createNewUser(agent_no: string, customer_no: string, navigate?: NavigateFunction) {
   return (dispatch: Dispatch) => {
     dispatch(request());
-    chatServices.createNewUser( agent_no, customer_no ).then(
+    chatServices.createNewUser(agent_no, customer_no).then(
       (res) => {
-        console.log("create chat user resss",res)
+        console.log("create chat user resss", res)
         dispatch(success(res));
-        navigate('/messages')
+        console.log("res", res)
+        if (navigate) {
+          navigate('/messages', { state: res });
+        }
       },
       (error) => {
         if (error && error.message) {

@@ -33,7 +33,7 @@ const socket = io(tokenurl);
 const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber }) => {
   const navigate = useNavigate()
   const [status, setStatus] = useState('Disconnected');
- const [call, setCall] = useState<TwilioCall | null>(null);
+  const [call, setCall] = useState<TwilioCall | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
@@ -129,7 +129,7 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
   // Handle message action
   const handleMessage = () => {
-    dispatch(chatActions.createNewUser(agentNumber,ownerNumber , navigate))
+    dispatch(chatActions.createNewUser(agentNumber, ownerNumber , navigate))
   };
 
   // Hang up call
