@@ -6,14 +6,16 @@ interface UserState {
   error: boolean | string;
   success: boolean;
   message: string | null;
-  token: Record<string, any>;
+  token: any;
+  agentId : any
 }
 
 interface UserAction {
   type: string;
   message?: string;
   error?: boolean | string;
-  record?: any;
+  token?: any;
+  agent_id:any
 }
 
 const initialState: UserState = {
@@ -21,7 +23,8 @@ const initialState: UserState = {
   error: false,
   success: false,
   message: null,
-  token: {},
+  token: "",
+  agentId:""
 };
 
 export default function callerReducer(
@@ -37,11 +40,12 @@ export default function callerReducer(
         draft.message = null;
         break;
       case callerConstants.GET_CALLING_TOKEN_SUCCESS:
-        draft.token = action.record;
+        draft.token = action.token;
+        draft.agentId = action.agent_id
         draft.loading = false;
         draft.error = false;
-        draft.success = false;
-        draft.message = '';
+        draft.success = true;
+        draft.message = action.message ?? null;
         break;
       case callerConstants.GET_CALLING_TOKEN_ERROR:
         draft.loading = false;

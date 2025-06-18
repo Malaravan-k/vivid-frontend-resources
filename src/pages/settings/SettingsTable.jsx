@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, RotateCw, Eye, EyeOff } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import {userActions} from '../../store/actions/user.actions'
+import { userActions } from '../../store/actions/user.actions'
 import Button from '../../components/ui/Button'
-
+import MobileNumberDropdown from '../../components/ui/MobileNumberDropdown'; // Import the new component
 
 // Mock Table component - replace with your actual Table import
 const Table = ({ columns, data, keyExtractor, isLoading }) => {
-  
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -34,19 +34,19 @@ const Table = ({ columns, data, keyExtractor, isLoading }) => {
                 </div>
               </td>
             </tr>
-          ):(
-          data.map((item) => (
-            <tr key={keyExtractor(item)} className="hover:bg-gray-50">
-              {columns.map((column, colIndex) => (
-                <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {typeof column.accessor === 'function' 
-                    ? column.accessor(item) 
-                    : item[column.accessor]}
-                </td>
-              ))}
-            </tr>
-          )))
-        }
+          ) : (
+            data.map((item) => (
+              <tr key={keyExtractor(item)} className="hover:bg-gray-50">
+                {columns.map((column, colIndex) => (
+                  <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {typeof column.accessor === 'function'
+                      ? column.accessor(item)
+                      : item[column.accessor]}
+                  </td>
+                ))}
+              </tr>
+            )))
+          }
         </tbody>
       </table>
     </div>
@@ -82,7 +82,6 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
 const Settings = () => {
   const [users, setUsers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   // Modal states
@@ -90,22 +89,27 @@ const Settings = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
+  
   const dispatch = useDispatch();
-  const {userRecords ,loading , success, deleteSuccess} = useSelector((state)=>state.userReducer)
-  const {inprogress} = useSelector((state)=>state.loaderReducer)
+  const { userRecords, loading, success, deleteSuccess, total, mobileNumbers } = useSelector((state) => state.userReducer)
+  const { inprogress } = useSelector((state) => state.loaderReducer)
 
-
- const pageSize = 10;
-
-
-useEffect(() => {
-  if (currentPage !== 0) {
+  // Available mobile numbers state - in future, fetch from API
+  const [availableMobileNumbers, setAvailableMobileNumbers] = useState([]);
+  console.log("availableMobileNumbers;;;;", availableMobileNumbers)
+  const pageSize = 10;
+  useEffect(() => {
+    dispatch(userActions.fetchTwilioNumbers())
+  }, [])
+  useEffect(() => {
     dispatch(userActions.loadRecords({ page: currentPage, pageSize }));
-  }
-}, [currentPage]);
+  }, [currentPage]);
+
   const [formData, setFormData] = useState({
     userName: '',
-    mobileNumber: '',
+    mobileNumbers: [], // Changed from mobileNumber to mobileNumbers array
     password: ''
   });
 
@@ -117,23 +121,19 @@ useEffect(() => {
       password: '25%*&gh89*&',
     }));
     setUsers(initialUsers);
+    setAvailableMobileNumbers(mobileNumbers);
   }, []);
-   useEffect(() => {
-  if ((success && showAddDialog) || (success && showEditDialog) || (deleteSuccess && showDeleteDialog)) {
-    dispatch(userActions.loadRecords({ page: currentPage, pageSize }));
-    closeDialogs();
-  }
-}, [success ,deleteSuccess]);
-  useEffect(() => {
-    const filtered = users.filter((user) =>
-      user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.mobileNumber.includes(searchTerm)
-    );
-    setFilteredUsers(filtered);
-    setCurrentPage(1);
-  }, [searchTerm, users]);
 
-  const totalPages = Math.ceil(filteredUsers.length / pageSize);
+  useEffect(() => {
+    if ((success && showAddDialog) || (success && showEditDialog) || (deleteSuccess && showDeleteDialog)) {
+      dispatch(userActions.loadRecords({ page: currentPage, pageSize }));
+      closeDialogs();
+    }
+  }, [success, deleteSuccess]);
+
+
+
+  const totalPages = Math.ceil(total / pageSize);
   const currentUsers = filteredUsers.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
@@ -143,9 +143,10 @@ useEffect(() => {
   const resetForm = () => {
     setFormData({
       userName: '',
-      mobileNumber: '',
+      mobileNumbers: [],
       password: ''
     });
+    setShowPassword(false); // Reset password visibility when resetting form
   };
 
   const handleAddUser = () => {
@@ -153,40 +154,62 @@ useEffect(() => {
     setShowAddDialog(true);
   };
 
+  // In the handleEdit function
   const handleEdit = (user) => {
     setSelectedUser(user);
+    console.log("user:::", user.mobile_numbers);
+
+    // Extract mobile numbers from the mobile_numbers array
+    const userMobileNumbers = user.mobile_numbers
+      ? user.mobile_numbers.map(m => m.mobile_number)
+      : [];
+
+    console.log("userMobileNumbers", userMobileNumbers);
+
     setFormData({
       userName: user.user_name,
-      mobileNumber: user.mobile_number,
+      mobileNumbers: userMobileNumbers,
       password: user.password
     });
+    setShowPassword(false); // Reset password visibility when editing
     setShowEditDialog(true);
   };
+
+  // Also update the useEffect for availableMobileNumbers
+  useEffect(() => {
+    if (mobileNumbers && mobileNumbers.length > 0) {
+      setAvailableMobileNumbers(mobileNumbers);
+    }
+  }, [mobileNumbers]);
 
   const handleDelete = (user) => {
     setSelectedUser(user);
     setShowDeleteDialog(true);
   };
 
- const saveUser = (e) => {
-  if (e) e.preventDefault();
-  if (showEditDialog && selectedUser) {
-    const user_id = selectedUser?.user_id
-   const updatedUser = {
-    user_id:user_id,
-      ...formData,
-    };
-    dispatch(userActions.updateRecord(updatedUser));
-  } else {
-    // Add new user
-    const newUser = {
-      ...formData,
-    };
-    setUsers((prevUsers) => [...prevUsers, newUser]);
-    dispatch(userActions.AddUser(newUser))
-  }
-};
-
+  const saveUser = (e) => {
+    if (e) e.preventDefault();
+    if (showEditDialog && selectedUser) {
+      const user_id = selectedUser?.user_id
+      const updatedUser = {
+        user_id: user_id,
+        userName: formData.userName,
+        mobileNumbers: formData.mobileNumbers, // Send as array
+        password: formData.password,
+      };
+      console.log("updatedUser",updatedUser)
+      dispatch(userActions.updateRecord(updatedUser));
+    } else {
+      // Add new user
+      const newUser = {
+        userName: formData.userName,
+        mobileNumbers: formData.mobileNumbers, // Send as array
+        password: formData.password,
+      };
+      setUsers((prevUsers) => [...prevUsers, newUser]);
+      dispatch(userActions.AddUser(newUser))
+    }
+  };
 
   const confirmDelete = () => {
     const user_id = selectedUser?.user_id
@@ -208,14 +231,23 @@ useEffect(() => {
     }));
   };
 
+  // Handle mobile numbers change from the dropdown component
+  const handleMobileNumbersChange = (selectedNumbers) => {
+    setFormData(prev => ({
+      ...prev,
+      mobileNumbers: selectedNumbers
+    }));
+  };
+
+  // Toggle password visibility
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   const columns = [
     {
       header: 'Name',
       accessor: 'user_name',
-    },
-    {
-      header: 'Mobile',
-      accessor: 'mobile_number',
     },
     {
       header: 'Password',
@@ -258,7 +290,14 @@ useEffect(() => {
               Only admins are allowed to manage user accounts.
             </p>
           </div>
-          <div >     
+          <div className='flex gap-5'>
+            <button
+              onClick={handleAddUser}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center space-x-2"
+            >
+              <RotateCw className="w-4 h-4" />
+              <span>Sync Twilio</span>
+            </button>
             <button
               onClick={handleAddUser}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center space-x-2"
@@ -288,70 +327,86 @@ useEffect(() => {
 
       {/* Add/Edit Dialog */}
       {(showAddDialog || showEditDialog) && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-      <div className="p-6">
-        <h3 className="text-lg font-semibold text-blue-600 text-center mb-6">
-          {showEditDialog ? 'Edit User' : 'Add User'}
-        </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-blue-600 text-center mb-6">
+                {showEditDialog ? 'Edit User' : 'Add User'}
+              </h3>
 
-        <form onSubmit={saveUser}>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-blue-600 mb-2">Name</label>
-              <input
-                type="text"
-                value={formData.userName}
-                disabled={showEditDialog}
-                onChange={(e) => handleInputChange('userName', e.target.value)}
-                className="w-full px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Alex"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-blue-600 mb-2">Mobile Number</label>
-              <input
-                type="tel"
-                value={formData.mobileNumber}
-                onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
-                className="w-full px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="234-767-8776"
-                required
-              />
-            </div>
+              <form onSubmit={saveUser}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-blue-600 mb-2">Name</label>
+                    <input
+                      type="text"
+                      value={formData.userName}
+                      disabled={showEditDialog}
+                      onChange={(e) => handleInputChange('userName', e.target.value)}
+                      className="w-full px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Alex"
+                      required
+                    />
+                  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-blue-600 mb-2">Password</label>
-              <input
-                type="password"
-                value={formData.password}
-                disabled={showEditDialog}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className="w-full px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="*#6huy77U80%"
-                required
-              />
+                  <div>
+                    <label className="block text-sm font-medium text-blue-600 mb-2">
+                      Mobile Numbers
+                    </label>
+                    <MobileNumberDropdown
+                      key={`mobile-dropdown-${showEditDialog ? selectedUser?.user_id : 'new'}-${formData.mobileNumbers?.join(',')}`}
+                      selectedNumbers={formData.mobileNumbers || []}
+                      onNumbersChange={handleMobileNumbersChange}
+                      availableNumbers={availableMobileNumbers}
+                      placeholder="Select mobile number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-blue-600 mb-2">Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        disabled={showEditDialog}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        className="w-full px-3 py-2 pr-10 bg-blue-50 border border-blue-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="*#6huy77U80%"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                        disabled={showEditDialog}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex space-x-4 mt-8">
+                  <Button type="submit" className="w-full" isLoading={inprogress}>
+                    {showEditDialog ? 'Edit' : 'Add '}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={closeDialogs}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-
-          <div className="flex space-x-4 mt-8">
-            <Button type="submit" className="w-full" isLoading={inprogress}>
-                  {showEditDialog ? 'Edit' : 'Add '}
-                </Button>
-            <button
-              type="button" // Explicitly set as button type
-              onClick={closeDialogs}
-              className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (

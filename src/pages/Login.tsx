@@ -5,11 +5,12 @@ import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { dispatch } from '../store';
 import { sessionActions } from '../store/actions/session.actions';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
+import { Formik, Form, } from 'formik';
 import * as Yup from 'yup';
 import LoginWrapper from './LoginWrapper';
 import { useSelector } from 'react-redux';
 import {RootState} from '../store/index'
+import IconImage from '../assets/Voxlane_logo.png'
 
 const Login = () => {
   const navigate = useNavigate();
@@ -30,8 +31,9 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8 ">
       <div className="max-w-md w-full space-y-8 ">
         <div>
-          <div className="mx-auto h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-            V
+          <div className="mx-auto  rounded-full bg-white flex gap-2 items-center justify-center text-white font-bold text-lg">
+            <img className="w-16 h-16" src={IconImage} alt="Icon" />
+            {/* <p className='text-[#0095FF] text-3xl '>Voxlane</p> */}
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account

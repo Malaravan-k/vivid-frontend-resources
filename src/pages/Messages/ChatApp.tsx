@@ -7,6 +7,7 @@ import { dispatch } from '../../store';
 import { casesActions } from '../../store/actions/cases.actions';
 import { useSelector } from 'react-redux';
 import {RootState} from '../../store/index'
+import { useLocation } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -32,6 +33,8 @@ interface StreamTokenData {
 }
 
 const ChatApp: React.FC = () => {
+  const location = useLocation();
+  console.log("location",location)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<StreamChat | null>(null);
@@ -40,24 +43,69 @@ const ChatApp: React.FC = () => {
   const [activeChannel, setActiveChannel] = useState<any>(null);
   const [ownerInfo, setOwnerInfo] = useState<any | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-const { loading: casesLoading, record } = useSelector((state: RootState) => state.caseReducer);
-const { user } = useSelector((state: RootState) => state.sessionReducer);
-console.log("casesLoading",casesLoading)
-console.log("record",record);
-
-useEffect(()=>{
+  const { loading: casesLoading, record } = useSelector((state: RootState) => state.caseReducer);
+  const { user, isLoggedIn} = useSelector((state: RootState) => state.sessionReducer);
+ useEffect(()=>{
   setOwnerInfo(record)
 }, [record])
+console.log("currentUserId",currentUserId)
+useEffect(() => {
+  if (location.state) {
+    const { customer_id, channel_id,agent_id} = location.state;
+
+    if (customer_id && channel_id && client && currentUserId) {
+      autoSelectUser(customer_id, channel_id , agent_id);
+    }
+  }
+}, [location.state, client, currentUserId]);
+console.log("client!!!!!", client)
+
+const autoSelectUser = async (customer_id: User, channelId: string , agent_id :string) => {
+  try {
+    console.log("user>>>>>>>",customer_id)
+    console.log("channelId",channelId);
+    
+    // Use the passed channel ID to create or get the channel
+    const channel = client!.channel('messaging', channelId, {
+      members: [agent_id, customer_id],
+    });
+
+    await channel.watch();
+    setActiveChannel(channel);
+    const userToSelect = users.find(u => u.id === customer_id) || {
+        id: customer_id,
+        name: customer_id,
+        phone: customer_id
+      };
+      
+    setSelectedUser(userToSelect);
+    // Load owner info
+    const useMobile = true;
+    const Id = user?.name.replace('+', '');
+    dispatch(casesActions.loadRecord(Id, useMobile));
+  } catch (err) {
+    console.error('Error auto-selecting user:', err);
+  }
+};
+
   
-  const agentNumber = `+${user?.['custom:mobileNumber']}`;
+  const agentNumber = localStorage.getItem('primary_mobile_number')?.replace(/\D/g, '');
   const apiEndpoint = import.meta.env.VITE_APP_CALLING_SYSTEM_URL;
 
   // localStorage keys
   const STREAM_TOKEN_KEY = 'stream_token_data';
 
-  useEffect(() => {
-    initializeChat();
-  }, []);
+useEffect(() => {
+  initializeChat();
+  // Cleanup function to disconnect when component unmounts
+  return () => {
+    if (client) {
+      client.disconnectUser().catch(err => 
+        console.warn('Error during cleanup disconnect:', err)
+      );
+    }
+  };
+}, []); //
 
   // Helper function to get stored token data
   const getStoredTokenData = (): StreamTokenData | null => {
@@ -80,111 +128,161 @@ useEffect(()=>{
     };
     localStorage.setItem(STREAM_TOKEN_KEY, JSON.stringify(tokenData));
   };
+const initializeChat = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    let token: string;
+    let api_key: string;
+    const storedTokenData = getStoredTokenData();
+    console.log("storedTokenData",storedTokenData);
+    
+    if (storedTokenData) {
+      token = storedTokenData.token;
+      api_key = storedTokenData.api_key;
+    } else {
+      const response = await fetch(`${apiEndpoint}/stream-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_no: agentNumber,
+        }),
+      });
 
-  const initializeChat = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      let token: string;
-      let api_key: string;
-      const storedTokenData = getStoredTokenData();
-      if (storedTokenData) {
-        token = storedTokenData.token;
-        api_key = storedTokenData.api_key;
-      } else {
-        const response = await fetch(`${apiEndpoint}/stream-token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_no: agentNumber,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const responseData = await response.json();
-        token = responseData.token;
-        api_key = responseData.api_key;
-        storeTokenData(token, api_key);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
-      const streamClient = StreamChat.getInstance(api_key);
-      const userId = agentNumber.replace(/\D/g, '');
-      
-      await streamClient.connectUser(
-        {
-          id: userId,
-          name: agentNumber,
-        },
-        token
-      );
-
-      setClient(streamClient);
-      setCurrentUserId(userId);
-
-      await loadUsers(streamClient);
-
-      setLoading(false);
-    } catch (err) {
-      console.error('Error initializing chat:', err);
-      
-      // If there's an authentication error, clear stored credentials and retry once
-      if (err instanceof Error && (err.message.includes('401') || err.message.includes('403'))) {
-        localStorage.removeItem(STREAM_TOKEN_KEY);
-        console.log('Cleared stored credentials due to authentication error');
-      }
-      
-      setError(err instanceof Error ? err.message : 'Failed to initialize chat');
-      setLoading(false);
+      const responseData = await response.json();
+      token = responseData.token;
+      api_key = responseData.api_key;
+      storeTokenData(token, api_key);
     }
-  };
 
-  const loadUsers = async (streamClient: StreamChat) => {
-    try {
-      const response = await streamClient.queryUsers(
-        {}, // Empty filter to get all users
-        { last_active: -1 }, // Sort by last active
+    // Step 2: Create a fresh client instance
+    const streamClient = StreamChat.getInstance(api_key);
+   
+    const userId = agentNumber?.replace(/\D/g, '');
+    console.log("userId",userId);
+    
+    console.log("streamClient:::",streamClient);
+    
+    // Step 3: Always connect the user (no need to check if already connected)
+    await streamClient.connectUser(
+      {
+        id: `${userId}`,
+        name: agentNumber,
+      },
+      token
+    );
+
+    setClient(streamClient);
+    setCurrentUserId(userId);
+
+    await loadUsers(streamClient);
+
+    setLoading(false);
+  } catch (err) {
+    console.error('Error initializing chat:', err);
+    
+    if (err instanceof Error && (err.message.includes('401') || err.message.includes('403'))) {
+      localStorage.removeItem(STREAM_TOKEN_KEY);
+      console.log('Cleared stored credentials due to authentication error');
+    }
+    
+    // setError(err instanceof Error ? err.message : 'Failed to initialize chat');
+    setLoading(false);
+  }
+};
+
+const loadUsers = async (streamClient: StreamChat) => {
+  try {
+
+    console.log("Hiiiiiii Vanakkam")
+    const userId = agentNumber?.replace(/\D/g, '');
+    const channelsResponse = await streamClient.queryChannels(
+      { 
+        type: 'messaging',
+        members: { $in: [`${userId}`] } 
+      },
+      { last_message_at: -1 },
+      { 
+        limit: 50,
+        member: true,
+        presence: true
+      }
+    );
+ console.log("channelsResponse",channelsResponse)
+    // Handle different response structures
+    const channels = Array.isArray(channelsResponse) ? 
+      channelsResponse : 
+      (channelsResponse.channels || []);
+
+    // Extract unique user IDs from channel members
+    const relatedUserIds = new Set<string>();
+    
+    channels.forEach((channel: any) => {
+      const members = channel.state?.members || channel.members || [];
+      
+      Object.values(members).forEach((member: any) => {
+        const memberId = member.user_id || member.user?.id;
+        if (memberId && memberId !== `${userId}`) {
+          relatedUserIds.add(memberId);
+        }
+      });
+    });
+
+    let usersList: User[] = [];
+    console.log("usersList::",usersList)
+
+    if (relatedUserIds.size > 0) {
+      const usersResponse = await streamClient.queryUsers(
+        { id: { $in: Array.from(relatedUserIds) } },
+        { last_active: -1 },
         { limit: 50 }
       );
 
-      const usersList = response.users
-        .filter(user => user.id !== currentUserId) // Exclude current user
-        .map(user => ({
-          id: user.id,
-          name: user.name || user.id,
-          phone: user.phone || user.id,
-          online: user.online,
-          last_active: user.last_active,
-        }));
+      const usersData = Array.isArray(usersResponse) ? 
+        usersResponse : 
+        (usersResponse.users || []);
 
-      setUsers(usersList);
-    } catch (err) {
-      console.error('Error loading users:', err);
+      usersList = usersData.map((user: any) => ({
+        id: user.id,
+        name: user.name || user.id,
+        phone: user.phone || user.id,
+        online: user.online,
+        last_active: user.last_active,
+      }));
     }
-  };
+
+
+
+    setUsers(usersList);
+  } catch (err) {
+    console.error('Error loading users:', err);
+    setError('Failed to load chat history. Please try again.');
+    setUsers([]);
+  }
+};
 
   const selectUser = async (user: User) => {
     try {
       if (!client || !currentUserId) return;
-
       setSelectedUser(user);
       console.log("user" , user)
-
+      console.log("location?.state?.channel_id",location?.state?.channel_id);
+      
       // Create or get existing channel
-      const channel = client.channel('messaging', {
-        members: [currentUserId, user.id],
+      const userId = user?.name.replace(/\D/g, '')
+      const channelId = `${currentUserId}-${userId}`
+      const channel = client.channel('messaging',channelId,{
+        members: [`${currentUserId}`, `${userId}`],
       });
-
       await channel.watch();
       setActiveChannel(channel);
-
       // Load owner info
       const useMobile = true;
       const Id = user?.name.replace('+', '')
       dispatch(casesActions.loadRecord(Id , useMobile))
-      console.log("user",user)
     } catch (err) {
       console.error('Error selecting user:', err);
     }
@@ -225,15 +323,6 @@ useEffect(()=>{
 
   return (
     <div className="rounded-xl overflow-hidden bg-gray-100">
-      {/* Header */}
-      {/* <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-gray-600">Acquisition Managers Portal</p>
-        </div>
-      </div> */}
-
-      {/* Main Content */}
       <div className="flex h-[700px] bg-white ">
         <UserList 
           users={users}

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import { ArrowLeft } from 'lucide-react';
-
 import { casesActions } from '../../store/actions/cases.actions';
 import { dispatch, RootState } from '../../store';
 import { useSelector } from 'react-redux';
@@ -11,33 +10,39 @@ import PhoneDashboard from './PhoneDashboard';
 const CaseDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [agentNumber, setAgentNumber] = useState<string | null>(null)
+  const location = useLocation();
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string | null>(null);
   const [caseData, setCaseData] = useState<any | null>(null);
   const { loading, record } = useSelector((state: RootState) => state.caseReducer)
   const { user } = useSelector((state: RootState) => state.sessionReducer)
+  const agentNumber = localStorage.getItem('primary_mobile_number')
+  const caseId = record?.case_id
+  console.log("location:",location)
 
-  useEffect(() => {
-    if (user) {
-      setAgentNumber(`+${user['custom:mobileNumber']}`)
-    }
-  }, [user])
+useEffect(() => {
+  setCaseData(record);
 
-  useEffect(() => {
-    setCaseData(record);
-    // Set the first available phone number as default
-    if (record?.phones && Array.isArray(record.phones)) {
-      const firstPhone = record.phones.find(phone => phone && phone.trim() !== '');
-      if (firstPhone) {
-        setSelectedPhoneNumber(firstPhone);
-      }
+  if (record?.phones && Array.isArray(record.phones)) {
+    // Clean phone numbers
+    const validPhones = record.phones.filter(phone => phone && phone.trim() !== '');
+    console.log("validPhones",validPhones) 
+    // If the URL id matches one of the phone numbers, select it
+    const matchedPhone = validPhones.find(phone => phone === id);
+
+    if (matchedPhone) {
+      setSelectedPhoneNumber(matchedPhone);
+    } else if (validPhones.length > 0) {
+      // Otherwise select the first one by default
+      setSelectedPhoneNumber(validPhones[0]);
     }
-  }, [record]);
+  }
+}, [record, id]);
+
 
   useEffect(() => {
     dispatch(casesActions.loadRecord(id))
-  }, [])
-
+  }, [id])
+  
   // Filter out empty/null phone numbers and get all valid ones
   const phoneNumbers = Array.isArray(caseData?.phones)
     ? caseData.phones.filter(phone => phone && phone.trim() !== '')
@@ -46,7 +51,7 @@ const CaseDetail = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -134,12 +139,12 @@ const CaseDetail = () => {
                   <div className="space-y-2">
                     <div>
                       <p className="text-md text-gray-900">Assessed Value:
-                        <span className="text-sm font-medium text-gray-500">${caseData.assessed_value?.toLocaleString() || 'N/A'}</span>
+                        <span className="text-sm font-medium text-gray-500">{caseData.assessed_value?.toLocaleString() || 'N/A'}</span>
                       </p>
                     </div>
                     <div>
                       <p className="text-md text-gray-900">Amount Owed:
-                        <span className="text-sm font-medium text-gray-500">${caseData.amount_owed?.toLocaleString() || 'N/A'}</span>
+                        <span className="text-sm font-medium text-gray-500">{caseData.amount_owed?.toLocaleString() || 'N/A'}</span>
                       </p>
                     </div>
                     <div>
@@ -156,7 +161,7 @@ const CaseDetail = () => {
                   </div>
                 </div>
                 <div>
-                  <PhoneDashboard agentNumber={agentNumber} ownerNumber={selectedPhoneNumber} />
+                  <PhoneDashboard agentNumber={agentNumber} ownerNumber={selectedPhoneNumber} caseId={caseId}/>
                 </div>
               </div>
             </div>

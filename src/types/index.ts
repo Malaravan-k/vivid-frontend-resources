@@ -34,6 +34,9 @@ export interface Case {
   case_id: string;
   ownerId: string;
   owner_name: string;
+  mobile_number_1:string;
+  mobile_number_2:string;
+  mobile_number_3:string;
   contactNumber: string;
   status: 'Active' | 'Inactive';
   address?: string;

@@ -2,7 +2,7 @@ import { Dispatch } from "@reduxjs/toolkit";
 import { userConstants } from "../constants/user.constants";
 import { userServices } from "../services/user.services";
 import { loaderActions } from "./loader.actions";
-import { snackbarActions ,snackbarClose } from "../../helper/tools";
+import { snackbarActions, snackbarClose } from "../../helper/tools";
 
 
 function loadRecords(params?: any) {
@@ -64,16 +64,16 @@ function AddUser(payload: any) {
           }, 3000);
         }
       }, (error) => {
-        console.log("error",error)
+        console.log("error", error)
         if (error && error?.response?.data?.message) {
           error = error?.response?.data?.message
         }
         dispatch(failure(true, error))
         dispatch(loaderActions.end());
         dispatch(snackbarActions(true, error))
-          setTimeout(() => {
-            dispatch(snackbarClose());
-          }, 3000);
+        setTimeout(() => {
+          dispatch(snackbarClose());
+        }, 3000);
       }
     )
 
@@ -114,16 +114,16 @@ function updateRecord(record: any) {
         }
       },
       (error) => {
-        console.log("errror",error)
-         if (error && error?.response?.data?.message) {
+        console.log("errror", error)
+        if (error && error?.response?.data?.message) {
           error = error?.response?.data?.message
         }
         dispatch(failure(true, error));
         dispatch(loaderActions.end());
         dispatch(snackbarActions(true, error))
-          setTimeout(() => {
-            dispatch(snackbarClose());
-          }, 3000);
+        setTimeout(() => {
+          dispatch(snackbarClose());
+        }, 3000);
       }
     );
   };
@@ -145,9 +145,9 @@ function deleteRecord(record: any) {
     userServices.deleteRecord(record).then(
       (res) => {
         const { error, message } = res;
-        console.log("error",error)
-        console.log("message",message);
-        
+        console.log("error", error)
+        console.log("message", message);
+
         if (error) {
           dispatch(failure(true, message));
           dispatch(loaderActions.end());
@@ -165,17 +165,17 @@ function deleteRecord(record: any) {
         }
       },
       (error) => {
-        console.log("error",error)
-         if (error && error?.response?.data?.message) {
+        console.log("error", error)
+        if (error && error?.response?.data?.message) {
           error = error?.response?.data?.message
         }
-        
+
         dispatch(failure(true, error.toString()));
         dispatch(loaderActions.end());
         dispatch(snackbarActions(true, error.message))
-          setTimeout(() => {
-            dispatch(snackbarClose());
-          }, 3000);
+        setTimeout(() => {
+          dispatch(snackbarClose());
+        }, 3000);
       }
     );
   };
@@ -190,10 +190,143 @@ function deleteRecord(record: any) {
   }
 }
 
+function syncTwilioNumbers() {
+  return (dispatch: Dispatch) => {
+    dispatch(request())
+    userServices.syncTwilioNumbers().then(
+      (res) => {
+        const { message, error } = res
+        if (error) {
+          dispatch(failure(message, error))
+          dispatch(snackbarActions(true, message))
+          setTimeout(() => {
+            dispatch(snackbarClose());
+          }, 3000);
+        } else {
+          dispatch(success(message, error))
+          dispatch(snackbarActions(false, message))
+          setTimeout(() => {
+            dispatch(snackbarClose());
+          }, 3000);
+        }
+      },
+      (error) => {
+        if (error && error.message) {
+          error = error.message
+        }
+        dispatch(failure(error, true))
+        dispatch(snackbarActions(true, message))
+        setTimeout(() => {
+          dispatch(snackbarClose());
+        }, 3000);
+      }
+    )
+  }
+  function request() {
+    return { type: userConstants.SYNC_TWILIO_NUMBER }
+  }
+  function success(message: any, error: any) {
+    return { type: userConstants.SYNC_TWILIO_NUMBER, message, error }
+  }
+  function failure(message: any, error: any) {
+    return { type: userConstants.SYNC_TWILIO_NUMBER, message, error }
+  }
+}
+
+function fetchTwilioNumbers() {
+  return (dispatch: Dispatch) => {
+    dispatch(request())
+    console.log("hiiiiii")
+    userServices.fetchTwilioNumbers().then(
+      (res) => {
+        const { response, message, error } = res
+        if (error) {
+          dispatch(failure(message, error))
+          dispatch(snackbarActions(true, message))
+          setTimeout(() => {
+            dispatch(snackbarClose());
+          }, 3000);
+        } else {
+          console.log("response?.mobile_numbers", response?.mobile_numbers)
+          dispatch(success(response?.mobile_numbers, message, error))
+          dispatch(snackbarActions(false, message))
+          setTimeout(() => {
+            dispatch(snackbarClose());
+          }, 3000);
+        }
+      },
+      (error) => {
+        console.log("error", error)
+        if (error && error.message) {
+          error = error.message
+        }
+
+        dispatch(failure(error, true))
+        dispatch(snackbarActions(true, error))
+        setTimeout(() => {
+          dispatch(snackbarClose());
+        }, 3000);
+      }
+    )
+  }
+  function request() {
+    return { type: userConstants.FETCH_TWILIO_NUMBERS }
+  }
+  function success(mobileNumbers: any, message: any, error: any) {
+    console.log("records", mobileNumbers)
+    return { type: userConstants.FETCH_TWILIO_NUMBERS_SUCCESS, mobileNumbers, message, error }
+  }
+  function failure(message: any, error: any) {
+    return { type: userConstants.FETCH_TWILIO_NUMBERS_SUCCESS, message, error }
+  }
+}
+
+function getUserDetails(userId: string) {
+  return (dispatch: Dispatch) => {
+    dispatch(request());
+    userServices.getUserDetails(userId).then(
+      (res) => {
+        console.log("res......", res);
+        const { error, message, response } = res;
+        if (error) {
+          dispatch(failure(error, message));
+        } else {
+          // Get the primary mobile number from mobile_numbers
+          const mobileNumbers = response?.user?.mobile_numbers || [];
+          const primaryMobileObj = mobileNumbers.find((m: any) => m.is_primary);
+          dispatch(success(response,primaryMobileObj?.mobile_number));
+          console.log("primaryMobileObj",primaryMobileObj)
+          if (primaryMobileObj?.mobile_number) {
+            localStorage.setItem('primary_mobile_number', primaryMobileObj.mobile_number);
+          }
+        }
+      },
+      (error) => {
+        dispatch(failure(true, error?.message || 'Something went wrong'));
+      }
+    );
+  };
+
+  function request() {
+    return { type: userConstants.GET_USER_DETAILS };
+  }
+
+  function success(userDetails: any[],primaryMobileNumber:any) {
+    return { type: userConstants.GET_USER_DETAILS_SUCCESS, userDetails ,primaryMobileNumber };
+  }
+
+  function failure(error: any, message: any) {
+    return { type: userConstants.GET_USER_DETAILS_ERROR, error, message };
+  }
+}
+
 
 export const userActions = {
   AddUser,
   loadRecords,
   updateRecord,
-  deleteRecord
+  deleteRecord,
+  syncTwilioNumbers,
+  fetchTwilioNumbers,
+  getUserDetails
 }

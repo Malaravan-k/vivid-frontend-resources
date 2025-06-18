@@ -8,11 +8,15 @@ import { Search } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { dispatch, RootState } from '../../store/index'
 import { casesActions } from '../../store/actions/cases.actions';
+import CopyableText from '../../components/ui/CopyableText';
+import { useSocket } from '../../context/SocketContext';
+
  
 const CasesTable = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchText, setSearchText] = useState('');
   const navigate = useNavigate();
+  const {setCallStatus} = useSocket()
   const { records, loading, total } = useSelector((state: RootState) => state.caseReducer);
   const pageSize = 10;
  
@@ -24,12 +28,6 @@ const CasesTable = () => {
     }));
   }, [currentPage, searchText]);
  
-  const handleRowClick = (item: Case) => {
-    navigate(`/cases/${item.case_id}`, {
-      state: item
-    });
-  };
- 
   const handleSearch = () => {
     // Reset to first page when searching
     setCurrentPage(0);
@@ -37,6 +35,14 @@ const CasesTable = () => {
       filter: searchText.trim()
     }));
   };
+   
+  const handleRowClick = (item: Case) => {
+    navigate(`/cases/${item.case_id}`, {
+      state: item
+    });
+    // setCallStatus('in-progress')
+  };
+
  
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -48,33 +54,35 @@ const CasesTable = () => {
     handleSearch();
   };
  
-  const columns = [
-    {
-      header: 'Case ID',
-      accessor: 'case_id',
-    },
-    {
-      header: 'Owner Name',
-      accessor: 'owner_name',
-    },
-    {
-      header: 'Mobile Number 1',
-      accessor: 'mobile_number_1',
-    },
-    {
-      header: 'Mobile Number 2',
-      accessor: 'mobile_number_2', // Fixed: was mobile_number_1
-    },
-    {
-      header: 'Mobile Number 3',
-      accessor: 'mobile_number_3', // Fixed: was mobile_number_1
-    },
-    {
-      header: 'Status',
-      accessor: (row: Case) => <StatusBadge status={row.status} />,
-      className: 'text-center',
-    },
-  ];
+const columns = [
+  {
+    header: 'Case ID',
+    accessor: (row: Case) => <CopyableText text={row.case_id} />,
+  },
+  {
+    header: 'Owner Name',
+    accessor: 'owner_name',
+  },
+  {
+    header: 'Mobile Number 1',
+    accessor: (row: Case) => <CopyableText text={row.mobile_number_1} />,
+  },
+  {
+    header: 'Mobile Number 2',
+    accessor: (row: Case) => <CopyableText text={row.mobile_number_2} />,
+  },
+  {
+    header: 'Mobile Number 3',
+    accessor: (row: Case) => <CopyableText text={row.mobile_number_3} />,
+  },
+  {
+    header: 'Status',
+    accessor: (row: Case) => <StatusBadge status={row.status} />,
+    className: 'text-center',
+  },
+  
+];
+
  
   return (
     <div className="bg-white rounded-lg shadow">
@@ -111,8 +119,8 @@ const CasesTable = () => {
           columns={columns}
           data={records}
           keyExtractor={(item) => item.case_number}
-          onRowClick={handleRowClick}
           isLoading={loading}
+          onRowClick={handleRowClick}
         />
         <div className="px-4 py-3 border-t border-gray-200">
           <Pagination

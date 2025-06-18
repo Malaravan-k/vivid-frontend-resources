@@ -43,7 +43,7 @@ export const initializeDevice = (
       // Setup connection listeners
       conn.on('accept', () => {
         console.log('Call accepted successfully');
-        onStatusChange('Call in progress');
+        onStatusChange('in-progress');
       });
       
       conn.on('disconnect', () => {

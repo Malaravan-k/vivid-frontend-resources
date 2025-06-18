@@ -6,20 +6,24 @@ import { MdPhoneInTalk } from 'react-icons/md';
 import { BiMessageRounded } from 'react-icons/bi';
 import { motion } from 'framer-motion';
 
-import { dispatch } from '../../store/index';
+import { dispatch, RootState } from '../../store/index';
 import {
   getDevice,
   connectCall,
   disconnectDevice,
-} from '../../components/CallerDevice/twilioDevice';
+} from '../../utils/twilioDevice';
 import PostCallForm from '../../components/CaseDetails/PostCallForm';
 import { formatCallDuration } from '../../utils/formatters';
 import { chatActions } from '../../store/actions/chat.actions';
 import { useNavigate } from 'react-router-dom';
+import { postCallActions } from '../../store/actions/postcall.actions';
+import { useSocket } from '../../context/SocketContext';
+import { useSelector } from 'react-redux';
 
 type PhoneDashboardProps = {
   agentNumber: string | null;
   ownerNumber: string | null;
+  caseId:string | null;
 };
 type TwilioCall = {
   mute: (shouldMute: boolean) => void;
@@ -30,21 +34,26 @@ type TwilioCall = {
 const tokenurl = import.meta.env.VITE_APP_CALLING_SYSTEM_URL;
 const socket = io(tokenurl);
 
-const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber }) => {
+const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber , caseId}) => {
   const navigate = useNavigate()
   const [status, setStatus] = useState('Disconnected');
- const [call, setCall] = useState<TwilioCall | null>(null);
+  const [call, setCall] = useState<TwilioCall | null>(null);
+  const {success} = useSelector((state:RootState)=>state.postCallReducer)
   const [isMuted, setIsMuted] = useState(false);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [lastCallerNumber, setLastCallerNumber] = useState('');
   const [isPostCallFormOpen, setIsPostCallFormOpen] = useState(false);
-  const [isPostCallAvailable, setIsPostCallAvailable] = useState(false);
+  const [isPostCallAvailable, setIsPostCallAvailable] = useState(true);
+  const {callStatus} = useSocket()
+  console.log("success",success)
+  useEffect(()=>{
+   setStatus(callStatus)
+  },[callStatus])
   
-  // Refs
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-
+   console.log("call::::::",call)
   // Handle socket status updates
   useEffect(() => {
     const handleStatusUpdate = (data: { CallStatus: string }) => {
@@ -129,20 +138,19 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
   // Handle message action
   const handleMessage = () => {
-    dispatch(chatActions.createNewUser(agentNumber,ownerNumber , navigate))
+    dispatch(chatActions.createNewUser(agentNumber, ownerNumber , navigate))
   };
 
   // Hang up call
   const hangup = () => {
-    if (call) {
       disconnectDevice();
-    }
+    console.log("Hanging UPPPPPPP")
     setStatus('disconnected');
     setCall(null);
     setIsMuted(false);
   };
 
-  const handleToggleMute = () => {
+const handleToggleMute = () => {
   if (!call) {
     console.error('No active call to mute');
     return;
@@ -151,17 +159,13 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
   try {
     const newMuteState = !isMuted;
     console.log('Setting mute state to:', newMuteState);
-    if (call.isMuted && call.mute) {
-      call.mute(newMuteState);
-      setIsMuted(newMuteState);
-    } else if (typeof call.sendDigits === 'function') {
-      // For some older versions or different call objects
-      call.sendDigits(newMuteState ? 'mute' : 'unmute');
-      setIsMuted(newMuteState);
-    } else {
-      console.error('Mute functionality not available on this call object');
-      return;
-    }
+    
+    // Call the mute method on the call object
+    call.mute(newMuteState);
+    console.log("newMuteState",newMuteState)
+    
+    // Update the local state
+    setIsMuted(newMuteState);
     
     console.log('Mute operation completed');
   } catch (error) {
@@ -171,6 +175,7 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
   const handlePostCallClick = () => {
     setIsPostCallFormOpen(true);
+    dispatch(postCallActions.getPostCallDetails(caseId))
   };
 
   const handlePostCallFormClose = () => {
@@ -179,9 +184,12 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
   const handlePostCallFormSubmit = (formData: any) => {
     console.log('Post Call Form Data:', formData);
-    setIsPostCallAvailable(false);
+    dispatch(postCallActions.updateRecord(caseId,formData))
+    // setIsPostCallAvailable(false);
+    if(success){
     setIsPostCallFormOpen(false);
-    alert('Post call data saved successfully!');
+    dispatch(postCallActions.resetSuccess())
+    }
   };
 
   const getPhoneIcon = () => {
@@ -259,7 +267,6 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
             <span className="text-xs font-medium">{isMuted ? 'Muted' : 'Mic On'}</span>
           </div>
         )}
-
         {/* Call/Hangup and Message buttons */}
         <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2">
           {isCallActionable ? (

@@ -7,12 +7,13 @@ function getCallerToken(id:any) {
     dispatch(request(id));
     callerServices.getToken(id).then(
       (res) => {
-       const data = JSON.parse(res?.body || '{}'); // Parse the JSON string
+       const data = JSON.parse(res?.body || '{}');
+       console.log("response of token " , data) // Parse the JSON string
        const { response, error, message } = data;
         if (error) {
           dispatch(failure(true, message));
         } else {
-          dispatch(success(response?.token));
+          dispatch(success(response?.token , response?.agent_id));
           localStorage.setItem('twilioToken', response?.token)
         }
       },
@@ -27,8 +28,8 @@ function getCallerToken(id:any) {
   function request(id:any) {
     return { type: callerConstants.GET_CALLING_TOKEN, id };
   }
-  function success(record:any) {
-    return { type: callerConstants.GET_CALLING_TOKEN_SUCCESS, record };
+  function success(token:any , agent_id:any) {
+    return { type: callerConstants.GET_CALLING_TOKEN_SUCCESS, token ,agent_id  };
   }
   function failure(error:any, message:any) {
     return { type: callerConstants.GET_CALLING_TOKEN_ERROR, error, message };

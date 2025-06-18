@@ -2,7 +2,7 @@ import { NavigateFunction } from "react-router-dom";
 import { sessionConstants } from "../constants/session.constants";
 import { sessionServices } from "../services/session.services";
 import { Dispatch } from "@reduxjs/toolkit";
-import { disconnectDevice } from "../../components/CallerDevice/twilioDevice";
+import { disconnectDevice } from "../../utils/twilioDevice";
 
 import { jwtDecode } from "jwt-decode";
 import { snackbarActions,snackbarClose } from "../../helper/tools";
