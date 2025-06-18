@@ -33,10 +33,10 @@ function loadRecords(params?:any) {
     }
 }
 
-function loadRecord(id:any) {
+function loadRecord(id:any , useMobile?:any) {
   return (dispatch:Dispatch) => {
     dispatch(request(id));
-    casesServices.loadRecord(id).then(
+    casesServices.loadRecord(id , useMobile).then(
       (res) => {
         const { response, error, message } = res;
         if (error) {
