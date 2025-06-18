@@ -59,7 +59,7 @@ const CallLogsPage: React.FC = () => {
   
   // Backend pagination configuration
   const pageSize = 10; // Changed to 5 as requested
-  const agentId = localStorage.getItem('primary_mobile_number')?.replace(/\D/g, '');
+  const agentId = localStorage.getItem('primary_mobile_number')
 
   // Calculate pagination info without totalPages
   const hasNextPage = records.length === pageSize; // If we got full page size, likely more pages exist
@@ -87,7 +87,7 @@ const CallLogsPage: React.FC = () => {
   const handleRowClick = (callSummary: CallLogSummary): void => {
     setSelectedCallSummary(callSummary);
     console.log(callSummary);
-    const user_number = agentId;
+    const user_number = agentId
     const ownerNumber = callSummary?.phone_number;
     dispatch(callLogsActions.loadCallLogsDetails(user_number, ownerNumber));
   };

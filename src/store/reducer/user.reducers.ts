@@ -53,10 +53,16 @@ const userReducer = (state = initialState, props: UserAction): UserState =>
     const { type, message, error, record, records,mobileNumbers, total, page,userDetails,primaryMobileNumber } = props;    
     switch (type) {
       case userConstants.GET_USERS:
-      case userConstants.SYNC_TWILIO_NUMBER:
       case userConstants.FETCH_TWILIO_NUMBERS:
       case userConstants.GET_USER_DETAILS:
         draft.loading = true;
+        draft.error = false;
+        draft.success = false;
+        draft.message = null;
+        draft.deleteSuccess = false;
+        break;
+      case userConstants.SYNC_TWILIO_NUMBER:
+        draft.loading = false;
         draft.error = false;
         draft.success = false;
         draft.message = null;

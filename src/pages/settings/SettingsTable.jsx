@@ -153,6 +153,9 @@ const Settings = () => {
     resetForm();
     setShowAddDialog(true);
   };
+  const handleSyncNumbers = ()=>{
+    dispatch(userActions.syncTwilioNumbers())
+  }
 
   // In the handleEdit function
   const handleEdit = (user) => {
@@ -292,7 +295,7 @@ const Settings = () => {
           </div>
           <div className='flex gap-5'>
             <button
-              onClick={handleAddUser}
+              onClick={handleSyncNumbers}
               className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 flex items-center space-x-2"
             >
               <RotateCw className="w-4 h-4" />
