@@ -195,6 +195,7 @@ function syncTwilioNumbers() {
     dispatch(request())
     userServices.syncTwilioNumbers().then(
       (res) => {
+        console.log("response for sync twilio",res)
         const { message, error } = res
         if (error) {
           dispatch(failure(message, error))

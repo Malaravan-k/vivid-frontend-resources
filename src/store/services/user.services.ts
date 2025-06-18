@@ -39,7 +39,7 @@ function deleteRecord(id:string) {
 }
 
 function syncTwilioNumbers(){
-  return API.get('vivid-api',`sync-twilio`, getDefaultParamswithoutlimitkey(null))
+  return API.get('vivid-api-twilio',`/sync-numbers`, getDefaultParamswithoutlimitkey(null))
   .then((response)=>response)
   .catch((error)=>Promise.reject(error))
 }

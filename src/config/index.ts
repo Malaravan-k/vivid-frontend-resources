@@ -38,6 +38,10 @@ const dev = {
             await Auth.signOut({ global: true });
           }
         }
+      },
+      {
+        name:'vivid-api-twilio',
+        endpoint:import.meta.env.VITE_APP_CALLING_SYSTEM_URL
       }
     ]
   }
