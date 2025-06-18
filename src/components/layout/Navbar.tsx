@@ -4,22 +4,31 @@ import { LogOut, Menu, User } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { dispatch, RootState } from "../../store";
 import { sessionActions } from "../../store/actions/session.actions";
-import IconImage from '../../assets/icon.png';
+import IconImage from '../../assets/Voxlane_logo.png';
 import { useSelector } from "react-redux";
+import { useSocket } from "../../context/SocketContext";
 
 const Navbar = () => {
+  const {disconnectSocket} = useSocket()
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   const { user } = useSelector((state: RootState) => state.sessionReducer);
+  const { primaryMobileNumber } = useSelector((state: RootState) => state.userReducer);
   const userName = user?.['cognito:username'] || 'User'
   const userRole = user?.['custom:role'] || '';
   const isAdmin = userRole === 'Admin';
+  
+  // Get primary mobile number from localStorage for regular users
+  const primaryUserNumber = !isAdmin 
+    ? primaryMobileNumber || 'No phone' 
+    : '';
 
   const handleLogout = () => {
     dispatch(sessionActions.logout(navigate));
+    disconnectSocket()
   };
 
   // Admins see ONLY Settings; others see Cases, Mobile, Messages
@@ -28,21 +37,23 @@ const Navbar = () => {
     : [
         { name: "Cases", path: "/cases" },
         { name: "Messages", path: "/messages" },
+        { name: "Call Logs", path: "/callLogs" },
+        { name: "Voice Mails", path: "/voiceMails" },
       ];
 
   return (
     <>
-      <nav className="bg-white shadow-sm border-b border-gray-200 z-40 relative">
+      <nav className="w-full bg-white shadow-sm border-b border-gray-200 z-40 fixed">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <Link to={isAdmin ? "/settings" : "/cases"} className="flex items-center space-x-3">
-                  <div className="w-8 h-8">
-                    <img src={IconImage} alt="Icon" />
+                  <div className="">
+                    <img className="w-14 h-14" src={IconImage} alt="Icon" />
                   </div>
-                  <span className="text-xl font-semibold text-gray-900">
-                    Vivid
+                  <span className="text-xl font-semibold text-gray-800">
+                    Voxlane
                   </span>
                 </Link>
               </div>
@@ -79,6 +90,11 @@ const Navbar = () => {
                       <div className="font-medium text-gray-900">
                         {userName}
                       </div>
+                      {!isAdmin && primaryUserNumber && (
+                        <div className="text-xs text-gray-500">
+                          {primaryUserNumber}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button
@@ -134,18 +150,11 @@ const Navbar = () => {
                     {user?.name || 'User'}
                   </div>
                   <div className="text-sm font-medium text-gray-500">
-                    {user?.phone || 'No phone'}
+                    {!isAdmin ? primaryUserNumber : 'Admin'}
                   </div>
                 </div>
               </div>
               <div className="mt-3 space-y-1">
-                <Link
-                  to="/profile"
-                  className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Your Profile
-                </Link>
                 {isAdmin && (
                   <Link
                     to="/settings"

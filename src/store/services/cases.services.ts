@@ -10,8 +10,9 @@ function loadRecords(params?: any){
   .catch((error)=> Promise.reject(error))
 }
 
-function loadRecord(id:any) {
-  return API.get('vivid-api', `case-details?id=${id}`, getDefaultParamswithoutlimitkey(null))
+function loadRecord(id:any , useMobile = false) {
+  const endParam = useMobile ? 'mobile' : 'id'
+  return API.get('vivid-api', `case-details?${endParam}=${id}`, getDefaultParamswithoutlimitkey(null))
     .then((response) => response)
     .catch((error) => Promise.reject(error));
 }

@@ -25,14 +25,14 @@ function Table<T extends object>({
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+        <thead className="bg-gray-100">
           <tr>
             {columns.map((column, index) => (
               <th
                 key={index}
                 scope="col"
                 className={cn(
-                  "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+                  "px-6 py-4 text-left text-xs font-medium text-gray-800 uppercase tracking-wider",
                   column.className
                 )}
               >
@@ -61,9 +61,10 @@ function Table<T extends object>({
           ) : (
             data.map((row) => (
               <tr
-                key={keyExtractor(row)}
+                key={keyExtractor(row)}                
                 onClick={() => onRowClick && onRowClick(row)}
                 className={cn("hover:bg-gray-50", onRowClick && "cursor-pointer")}
+
               >
                 {columns.map((column, cellIndex) => (
                   <td

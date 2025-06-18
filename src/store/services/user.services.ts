@@ -38,10 +38,31 @@ function deleteRecord(id:string) {
     .catch((error) => Promise.reject(error));
 }
 
+function syncTwilioNumbers(){
+  return API.get('vivid-api',`sync-twilio`, getDefaultParamswithoutlimitkey(null))
+  .then((response)=>response)
+  .catch((error)=>Promise.reject(error))
+}
+
+function fetchTwilioNumbers(){
+  console.log("Vanakkam")
+  return API.get('vivid-api',`mobile-numbers`, getDefaultParamswithoutlimitkey(null))
+  .then((response)=>response)
+  .catch((error)=>Promise.reject(error))
+}
+
+function getUserDetails(userId:string){
+  return API.get('vivid-api',`${constantName}/details?user_id=${userId}`, getDefaultParamswithoutlimitkey(null))
+  .then((response)=>response)
+  .catch((error)=>Promise.reject(error))
+}
 
 export const userServices = {
   AddUser,
   loadRecords,
   updateRecord,
-  deleteRecord
+  deleteRecord,
+  syncTwilioNumbers,
+  fetchTwilioNumbers,
+  getUserDetails
 };

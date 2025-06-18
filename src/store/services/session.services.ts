@@ -6,6 +6,7 @@ import CryptoJS from "crypto-js";
 import { awsConfig } from "../../config";
 import { Auth } from "aws-amplify";
 import { NavigateFunction } from "react-router-dom";
+import { API } from "aws-amplify";
 
 const client = new CognitoIdentityProviderClient({ region: awsConfig.region });
 

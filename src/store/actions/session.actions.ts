@@ -2,6 +2,7 @@ import { NavigateFunction } from "react-router-dom";
 import { sessionConstants } from "../constants/session.constants";
 import { sessionServices } from "../services/session.services";
 import { Dispatch } from "@reduxjs/toolkit";
+import { disconnectDevice } from "../../utils/twilioDevice";
 
 import { jwtDecode } from "jwt-decode";
 import { snackbarActions,snackbarClose } from "../../helper/tools";
@@ -55,6 +56,7 @@ function logout(navigate:NavigateFunction) {
   return (dispatch:Dispatch) => {
     sessionServices.logout(navigate);
     setSession(null);
+    disconnectDevice();
     dispatch(sessionLogout());
   };
   function sessionLogout() {
