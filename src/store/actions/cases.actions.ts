@@ -33,10 +33,10 @@ function loadRecords(params?:any) {
     }
 }
 
-function loadRecord(id:any , useMobile?:any) {
+function loadRecord(id:any) {
   return (dispatch:Dispatch) => {
     dispatch(request(id));
-    casesServices.loadRecord(id , useMobile).then(
+    casesServices.loadRecord(id).then(
       (res) => {
         const { response, error, message } = res;
         if (error) {
@@ -64,8 +64,41 @@ function loadRecord(id:any , useMobile?:any) {
   }
 }
 
+function getCaseId(mobile:any) {
+  return (dispatch:Dispatch) => {
+    dispatch(request(mobile));
+    casesServices.searchCaseId(mobile).then(
+      (res) => {
+        console.log("response from caseIDDDDDD",res);
+        
+        const { response, error, message } = res;
+        if (error) {
+          dispatch(failure(true, message));
+        } else {
+          dispatch(success(response));
+        }
+      },
+      (error) => {
+        if (error && error.message) {
+          error = error.message;
+        }
+        dispatch(failure(true, error.toString()));
+      }
+    );
+  };
+  function request(mobile:any) {
+    return { type: casesConstants.SEARCH_CASEID, mobile };
+  }
+  function success(caseId:any) {
+    return { type: casesConstants.SEARCH_CASEID_SUCCESS, caseId };
+  }
+  function failure(error:any, message:any) {
+    return { type: casesConstants.SEARCH_CASEID_ERROR, error, message };
+  }
+}
 
 export const casesActions = {
     loadRecords,
-    loadRecord
+    loadRecord,
+    getCaseId
 }

@@ -9,14 +9,14 @@ import { useSelector } from 'react-redux';
 import { dispatch, RootState } from '../../store/index'
 import { casesActions } from '../../store/actions/cases.actions';
 import CopyableText from '../../components/ui/CopyableText';
-import { useSocket } from '../../context/SocketContext';
+import { useCall } from '../../context/CallContext';
 
  
 const CasesTable = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchText, setSearchText] = useState('');
   const navigate = useNavigate();
-  const {setCallStatus} = useSocket()
+  const {setCallStatus} = useCall()
   const { records, loading, total } = useSelector((state: RootState) => state.caseReducer);
   const pageSize = 10;
  
@@ -60,7 +60,7 @@ const columns = [
     accessor: (row: Case) => <CopyableText text={row.case_id} />,
   },
   {
-    header: 'Owner Name',
+    header: 'Owner Name', 
     accessor: 'owner_name',
   },
   {

@@ -5,9 +5,9 @@ import { userActions } from '../../store/actions/user.actions'
 import Button from '../../components/ui/Button'
 import MobileNumberDropdown from '../../components/ui/MobileNumberDropdown'; // Import the new component
 
-// Mock Table component - replace with your actual Table import
-const Table = ({ columns, data, keyExtractor, isLoading }) => {
 
+
+const Table = ({ columns, data, keyExtractor, isLoading }) => {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
@@ -34,6 +34,29 @@ const Table = ({ columns, data, keyExtractor, isLoading }) => {
                 </div>
               </td>
             </tr>
+          ) : data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length}  className="px-6 py-12 text-center">
+                <div className="flex flex-col items-center justify-center text-gray-400">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <p className="text-lg font-medium">No users found</p>
+                  <p className="text-sm mt-1">Add a new user to get started</p>
+                </div>
+              </td>
+            </tr>
           ) : (
             data.map((item) => (
               <tr key={keyExtractor(item)} className="hover:bg-gray-50">
@@ -45,15 +68,13 @@ const Table = ({ columns, data, keyExtractor, isLoading }) => {
                   </td>
                 ))}
               </tr>
-            )))
-          }
+            ))
+          )}
         </tbody>
       </table>
     </div>
   );
 };
-
-// Mock Pagination component - replace with your actual Pagination import
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   return (
     <div className="flex items-center justify-between">
@@ -94,11 +115,14 @@ const Settings = () => {
   
   const dispatch = useDispatch();
   const { userRecords, loading, success, deleteSuccess, total, mobileNumbers } = useSelector((state) => state.userReducer)
+  
   const { inprogress } = useSelector((state) => state.loaderReducer)
-
+  console.log("inprogress",inprogress)
+  // console.log("mobileNumbers!!!!!!!",mobileNumbers);
+  
   // Available mobile numbers state - in future, fetch from API
   const [availableMobileNumbers, setAvailableMobileNumbers] = useState([]);
-  console.log("availableMobileNumbers;;;;", availableMobileNumbers)
+  // console.log("availableMobileNumbers;;;;", availableMobileNumbers)
   const pageSize = 10;
   useEffect(() => {
     dispatch(userActions.fetchTwilioNumbers())
@@ -152,6 +176,7 @@ const Settings = () => {
   const handleAddUser = () => {
     resetForm();
     setShowAddDialog(true);
+    dispatch(userActions.fetchTwilioNumbers())
   };
   const handleSyncNumbers = ()=>{
     dispatch(userActions.syncTwilioNumbers())
@@ -160,25 +185,17 @@ const Settings = () => {
   // In the handleEdit function
   const handleEdit = (user) => {
     setSelectedUser(user);
-    console.log("user:::", user.mobile_numbers);
-
-    // Extract mobile numbers from the mobile_numbers array
     const userMobileNumbers = user.mobile_numbers
       ? user.mobile_numbers.map(m => m.mobile_number)
       : [];
-
-    console.log("userMobileNumbers", userMobileNumbers);
-
     setFormData({
       userName: user.user_name,
       mobileNumbers: userMobileNumbers,
       password: user.password
     });
-    setShowPassword(false); // Reset password visibility when editing
+    setShowPassword(false);
     setShowEditDialog(true);
   };
-
-  // Also update the useEffect for availableMobileNumbers
   useEffect(() => {
     if (mobileNumbers && mobileNumbers.length > 0) {
       setAvailableMobileNumbers(mobileNumbers);
@@ -197,7 +214,7 @@ const Settings = () => {
       const updatedUser = {
         user_id: user_id,
         userName: formData.userName,
-        mobileNumbers: formData.mobileNumbers, // Send as array
+        mobileNumbers: formData.mobileNumbers,
         password: formData.password,
       };
       console.log("updatedUser",updatedUser)
@@ -206,7 +223,7 @@ const Settings = () => {
       // Add new user
       const newUser = {
         userName: formData.userName,
-        mobileNumbers: formData.mobileNumbers, // Send as array
+        mobileNumbers: formData.mobileNumbers,
         password: formData.password,
       };
       setUsers((prevUsers) => [...prevUsers, newUser]);

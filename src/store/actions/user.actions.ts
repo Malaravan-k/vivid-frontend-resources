@@ -240,7 +240,7 @@ function fetchTwilioNumbers() {
     console.log("hiiiiii")
     userServices.fetchTwilioNumbers().then(
       (res) => {
-        const { response, message, error } = res
+        const { available_numbers, message, error } = res
         if (error) {
           dispatch(failure(message, error))
           dispatch(snackbarActions(true, message))
@@ -248,8 +248,8 @@ function fetchTwilioNumbers() {
             dispatch(snackbarClose());
           }, 3000);
         } else {
-          console.log("response?.mobile_numbers", response?.mobile_numbers)
-          dispatch(success(response?.mobile_numbers, message, error))
+          console.log("available_numbers", available_numbers)
+          dispatch(success(available_numbers, message, error))
           dispatch(snackbarActions(false, message))
           setTimeout(() => {
             dispatch(snackbarClose());
@@ -287,18 +287,16 @@ function getUserDetails(userId: string) {
     dispatch(request());
     userServices.getUserDetails(userId).then(
       (res) => {
-        console.log("res......", res);
         const { error, message, response } = res;
         if (error) {
           dispatch(failure(error, message));
         } else {
           // Get the primary mobile number from mobile_numbers
-          const mobileNumbers = response?.user?.mobile_numbers || [];
+          const mobileNumbers = response[0]?.phone_numbers || [];
           const primaryMobileObj = mobileNumbers.find((m: any) => m.is_primary);
-          dispatch(success(response,primaryMobileObj?.mobile_number));
-          console.log("primaryMobileObj",primaryMobileObj)
-          if (primaryMobileObj?.mobile_number) {
-            localStorage.setItem('primary_mobile_number', primaryMobileObj.mobile_number);
+          dispatch(success(response,primaryMobileObj?.phone_number));
+          if (primaryMobileObj?.phone_number) {
+            localStorage.setItem('primary_mobile_number', primaryMobileObj.phone_number);
           }
         }
       },

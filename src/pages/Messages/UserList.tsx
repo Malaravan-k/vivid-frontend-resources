@@ -1,69 +1,83 @@
-import React, { useState } from 'react';
-import { Search, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Search, Phone, User, MessageCircle } from 'lucide-react';
+import { chatActions } from '../../store/actions/chat.actions';
+import { RootState } from '../../store/index';
 
 interface User {
-  id: string;
-  name: string;
-  phone: string;
-  online?: boolean;
-  last_active?: string;
+  conversation_sid: string;
+  friendly_name: string;
+  owner_no: string;
 }
 
-interface UserListProps {
-  users: User[];
-  selectedUser: User | null;
-  onUserSelect: (user: User) => void;
-}
-
-const UserList: React.FC<UserListProps> = ({
-  users,
-  selectedUser,
-  onUserSelect,
-}) => {
+const UserList: React.FC = () => {
+  const dispatch = useDispatch();
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const { users, usersLoading, selectedUser, socketConnected } = useSelector((state: RootState) => state.chatReducer);
+  const agentId = localStorage.getItem('primary_mobile_number') || 'agent_123';
 
   const filteredUsers = users.filter((user: User) =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone.includes(searchTerm) ||
-    user.id.includes(searchTerm)
+    user.owner_no.includes(searchTerm) ||
+    user.conversation_sid.includes(searchTerm) ||
+    user.friendly_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
-  const formatLastActive = (lastActive: string) => {
-    if (!lastActive) return '';
-    const now = new Date();
-    const activeTime = new Date(lastActive);
-    const diffInMinutes = Math.floor((now.getTime() - activeTime.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}m`;
-    } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)}h`;
-    } else {
-      return `${Math.floor(diffInMinutes / 1440)}d`;
+  console.log("selectedUser",selectedUser);
+  useEffect(()=>{
+    if(selectedUser){
+    dispatch(chatActions.selectUser(selectedUser))
     }
+  },[])
+
+  const handleUserSelect = (user: any) => {
+    console.log("Selecting user:", user);
+    dispatch(chatActions.selectUser(user));
   };
 
+  const getDisplayName = (friendlyName: string) => {
+    return friendlyName.replace(`agent_${agentId}_owner_`, '');
+  };
+
+  useEffect(() => {
+    if (users.length > 0 && !selectedUser) {
+      console.log("Auto-selecting first user");
+      handleUserSelect(filteredUsers[0]);
+    }
+  }, [users]);
+
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+    <div className="w-80 lg:w-96 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/50 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200/50 bg-white/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Messages
+          </h2>
+          <div className={`w-3 h-3 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} 
+               title={socketConnected ? 'Connected' : 'Disconnected'} />
+        </div>
+        
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search messages"
+            placeholder="Search conversations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 bg-gray-100/80 border border-gray-200/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 backdrop-blur-sm"
           />
         </div>
       </div>
-      {/* Messages Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+
+      {/* Stats */}
+      <div className="px-6 py-4 border-b border-gray-200/50 bg-gradient-to-r from-emerald-50/80 to-blue-50/80 backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-800">User List</span>
-          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-emerald-600" />
+            <span className="font-medium text-gray-800">Active Chats</span>
+          </div>
+          <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
             {filteredUsers.length}
           </span>
         </div>
@@ -71,49 +85,58 @@ const UserList: React.FC<UserListProps> = ({
 
       {/* User List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredUsers.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            <Phone className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p>No users found</p>
-            <p className="text-xs">Create a new user to start chatting</p>
+        {usersLoading ? (
+          <div className="p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+            <p className="text-gray-500 text-sm">Loading contacts...</p>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="p-6 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <User className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="font-medium text-gray-900 mb-2">No contacts found</h3>
+            <p className="text-gray-500 text-sm">No users match your search criteria</p>
           </div>
         ) : (
-          filteredUsers.map((user) => (
-            <div
-              key={user.id}
-              onClick={() => onUserSelect(user)}
-              className={`p-4 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${
-                selectedUser?.id === user.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                    <Phone className="w-5 h-5 text-white" />
-                  </div>
-                  {user.online && (
-                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900 truncate">{user.name}</h3>
-                    <div className="flex items-center space-x-2">
-                      {user.last_active && (
-                        <span className="text-xs text-gray-500">
-                          {formatLastActive(user.last_active)}
-                        </span>
-                      )}
-                      {user.online && (
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      )}
+          filteredUsers.map((user) => {
+            const isSelected = selectedUser?.conversation_sid === user.conversation_sid;
+            
+            return (
+              <div
+                key={user.conversation_sid}
+                onClick={() => handleUserSelect(user)}
+                className={`relative p-4 border-b border-gray-100/50 cursor-pointer transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 ${
+                  isSelected 
+                    ? 'bg-gradient-to-r from-blue-100/80 to-indigo-100/80 border-l-4 border-l-blue-500 shadow-sm' 
+                    : ''
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <User className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm">
+                      <div className="w-full h-full bg-emerald-400 rounded-full animate-pulse"></div>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 truncate mt-1">{user.phone}</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate text-sm">
+                      {getDisplayName(user.friendly_name)}
+                    </h3>
+                    <p className="text-xs text-gray-600 truncate flex items-center gap-1 mt-1">
+                      <Phone className="w-3 h-3" />
+                      {user.owner_no}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

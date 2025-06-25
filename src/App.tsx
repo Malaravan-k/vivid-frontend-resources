@@ -4,17 +4,17 @@ import router from './router';
 import config from './config';
 import { Amplify } from 'aws-amplify';
 import Snackbar from './components/ui/Snackbar';
-import {SocketProvider} from './context/SocketContext'
+import { CallProvider } from './context/CallContext';
 
 Amplify.configure(config)
 
 function App() {
   return (
     <AuthProvider>
-      <SocketProvider>
+      <CallProvider>
       <RouterProvider router={router} />
       <Snackbar/>
-      </SocketProvider>
+      </CallProvider>
     </AuthProvider>
   );
 }

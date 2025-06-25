@@ -7,7 +7,6 @@ interface IncomingCallModalProps {
   callStatus: string;
   acceptCall: () => void;
   rejectCall: () => void;
-  onHangup: () => void;
 }
 
 const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
@@ -16,7 +15,6 @@ const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
   callStatus,
   acceptCall,
   rejectCall,
-  onHangup
 }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -32,7 +30,6 @@ const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
           </div>
 
           <div className="flex justify-center space-x-8">
-            {!callAccepted ? (
               <>
                 <button
                   onClick={acceptCall}
@@ -49,15 +46,6 @@ const IncomingCallModal: React.FC<IncomingCallModalProps> = ({
                   <MdCallEnd size={24} />
                 </button>
               </>
-            ) : (
-              <button
-                onClick={onHangup}
-                className="bg-red-500 hover:bg-red-600 text-white rounded-full p-4 mx-auto"
-                aria-label="Hang up"
-              >
-                <MdCallEnd size={24} />
-              </button>
-            )}
           </div>
         </div>
       </div>

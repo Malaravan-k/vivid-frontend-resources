@@ -30,24 +30,18 @@ const VoiceMails = () => {
   
   const agentId = localStorage.getItem('primary_mobile_number')?.replace(/\D/g, '');
   const { records, loading, total } = useSelector((state: RootState) => state.voiceMailReducer);
+  console.log("records112211221",records);
+  
   const pageSize = 10;
 
   useEffect(() => {
-    dispatch(voiceMailsActions.loadVoiceMails(agentId, {
-      page: currentPage,
-      pageSize: pageSize,
-      filter: searchTerm.trim()
-    }));
+    dispatch(voiceMailsActions.loadVoiceMails());
   }, [currentPage, searchTerm, agentId, dispatch]);
 
   const handleSearch = () => {
     // Reset to first page when searching
     setCurrentPage(0);
-    dispatch(voiceMailsActions.loadVoiceMails(agentId, {
-      page: 0,
-      pageSize: pageSize,
-      filter: searchTerm.trim()
-    }));
+    dispatch(voiceMailsActions.loadVoiceMails());
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -102,7 +96,7 @@ const VoiceMails = () => {
       header: 'Phone Number',
       accessor: (row) => (
         <div className="font-mono text-sm">
-          {row.phone_number}
+          {row.owner_number}
         </div>
       )
     },
@@ -111,40 +105,15 @@ const VoiceMails = () => {
       accessor: (row) => (
         <div className="flex items-center space-x-1">
           <Clock className="h-4 w-4 text-gray-400" />
-          <span className="text-sm">{formatDate(row.last_activity)}</span>
+          <span className="text-sm">{formatDate(row.call_started_at)}</span>
         </div>
       )
     },
     {
       header: 'Call Status',
-      accessor: (row) => getStatusBadge(row.latest_call_status)
+      accessor: (row) => getStatusBadge(row.call_status)
     },
-    {
-      header: 'Total Calls',
-      accessor: (row) => (
-        <div className="text-center">
-          <span className="text-sm font-medium">{row.total_calls}</span>
-        </div>
-      ),
-      className: 'text-center'
-    },
-    {
-      header: 'Voicemails',
-      accessor: (row) => (
-        <div className="flex items-center justify-center space-x-2">
-          <div className="flex items-center space-x-1">
-            <Mail className="h-4 w-4 text-gray-400" />
-            <span>{row.voicemails}</span>
-          </div>
-          {row.voicemails > 0 && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {row.voicemails} available
-            </span>
-          )}
-        </div>
-      ),
-      className: 'text-center'
-    }
+
   ];
 
   return (
