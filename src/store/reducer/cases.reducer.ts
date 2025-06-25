@@ -13,6 +13,8 @@ interface UserState {
   pageSize: number | null;
   page: number;
   deleteSuccess:boolean;
+  caseId: any;
+  getCaseIdLoading:boolean
 }
 
 interface UserAction {
@@ -23,8 +25,8 @@ interface UserAction {
   records?: any[];
   total?: number;
   page?: number;
+  caseId?:null
 }
-
 const initialState: UserState = {
   loading: false,
   error: false,
@@ -36,7 +38,9 @@ const initialState: UserState = {
   total: null,
   pageSize: null,
   page: 0,
-  deleteSuccess:false
+  deleteSuccess:false,
+  caseId:null,
+  getCaseIdLoading:false
 };
 
 export default function caseReducer(
@@ -70,6 +74,25 @@ export default function caseReducer(
       case casesConstants.LOAD_CASE_ERROR:
       case casesConstants.LOAD_CASES_ERROR:
         draft.loading = false;
+        draft.error = action.error || true;
+        draft.message = action.message || null;
+        draft.success = false;
+        break;
+      case casesConstants.SEARCH_CASEID:
+        draft.getCaseIdLoading = true;
+        draft.error = false;
+        draft.message = null;
+        draft.success = false;
+        break;
+      case casesConstants.SEARCH_CASEID_SUCCESS:
+        draft.getCaseIdLoading = false;
+        draft.caseId = action.caseId;
+        draft.message = action.message ?? null;
+        draft.error = false;
+        draft.success = true;
+        break;
+      case casesConstants.SEARCH_CASEID_ERROR:
+        draft.getCaseIdLoading = false;
         draft.error = action.error || true;
         draft.message = action.message || null;
         draft.success = false;

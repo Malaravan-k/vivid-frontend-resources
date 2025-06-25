@@ -4,6 +4,7 @@ import CallDetailsModal from './CallDetailsModal';
 import { callLogsActions } from '../../store/actions/callLogs.actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/index';
+import { casesActions } from '../../store/actions/cases.actions';
 
 // Updated Type definitions to match new API response
 interface CallLogSummary {
@@ -56,7 +57,7 @@ const CallLogsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const { records, loading, modalLoading, record, total } = useSelector((state: RootState) => state.callLogsReducer);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  
+
   // Backend pagination configuration
   const pageSize = 10; // Changed to 5 as requested
   const agentId = localStorage.getItem('primary_mobile_number')
@@ -90,6 +91,7 @@ const CallLogsPage: React.FC = () => {
     const user_number = agentId
     const ownerNumber = callSummary?.phone_number;
     dispatch(callLogsActions.loadCallLogsDetails(user_number, ownerNumber));
+    dispatch(casesActions.loadRecord(ownerNumber?.replace(/\D/g, '')))
   };
 
   // Handle page navigation
@@ -155,13 +157,10 @@ const CallLogsPage: React.FC = () => {
                 Latest Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total Calls
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Last Activity
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Call Logs
+                Call Type
               </th>
             </tr>
           </thead>
@@ -195,33 +194,23 @@ const CallLogsPage: React.FC = () => {
                     <div className="flex items-center">
                       <Phone className="w-5 h-5 text-gray-400 mr-3" />
                       <div className="text-sm font-medium text-gray-900">
-                        {callSummary.phone_number}
+                        {callSummary.owner_number}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <CallStatusBadge status={callSummary.latest_call_status} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex items-center">
-                      <Phone className="w-4 h-4 text-gray-400 mr-1" />
-                      {callSummary.total_calls}
-                    </div>
+                    <CallStatusBadge status={callSummary.call_status} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-                      {formatDate(callSummary.last_activity)}
+                      {formatDate(callSummary.call_started_at)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {callSummary.voicemails > 0 ? (
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-900">{callSummary.voicemails}</span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-400">-</span>
-                    )}
+                        <span className="text-sm text-gray-900">{callSummary.call_type}</span>
+                     </div>
                   </td>
                 </tr>
               ))

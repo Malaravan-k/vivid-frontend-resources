@@ -3,13 +3,15 @@ import { voiceMailServices } from "../services/voicemail.services";
 import { voiceMailConstants } from "../constants/voicemail.constants";
 
 // Load all voice messages
-function loadVoiceMails(agentId: string , paginationParams?:any) {
+function loadVoiceMails() {
   return (dispatch: Dispatch) => {
-    dispatch(request(agentId));
-    voiceMailServices.getAllVoiceMails(agentId ,paginationParams ).then(
+    dispatch(request());
+    voiceMailServices.getAllVoiceMails().then(
       (res) => {
+        console.log("ressssss",res);
+        
         const { response, error, message } = res;
-        const voiceMails = response?.call_logs_summary ? response.call_logs_summary : []
+        const voiceMails = response?.voicemail_logs ? response.voicemail_logs : []
         if (error) {
           dispatch(failure(true, message));
         } else {
@@ -25,8 +27,8 @@ function loadVoiceMails(agentId: string , paginationParams?:any) {
     );
   };
 
-  function request(agentId: string) {
-    return { type: voiceMailConstants.LOAD_MESSAGES, agentId };
+  function request() {
+    return { type: voiceMailConstants.LOAD_MESSAGE };
   }
   function success(records: any[]) {
     return { type: voiceMailConstants.LOAD_MESSAGES_SUCCESS, records };

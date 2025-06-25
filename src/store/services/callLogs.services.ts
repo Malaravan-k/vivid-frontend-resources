@@ -3,10 +3,10 @@ import { getDefaultParamswithoutlimitkey, buildQuery} from "../../helper/tools";
 
 const constantName = 'call-logs'
 
-function getCallLogs(agentId:string ,paginationParams?:any){
-  const encodedAgentId = encodeURIComponent(agentId);
-    const queryParams = buildQuery(paginationParams)
-    return API.get('vivid-api', `${constantName}?user_number=${encodedAgentId}`, getDefaultParamswithoutlimitkey(null,{queryStringParameters : queryParams}))
+function getCallLogs(){
+  // const encodedAgentId = encodeURIComponent(agentId);
+  //   const queryParams = buildQuery(paginationParams)
+    return API.get('vivid-api', `${constantName}`, getDefaultParamswithoutlimitkey(null))
          .then((response)=>response)
          .catch((error)=>Promise.reject(error))
 }

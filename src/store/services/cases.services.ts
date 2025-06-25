@@ -10,14 +10,20 @@ function loadRecords(params?: any){
   .catch((error)=> Promise.reject(error))
 }
 
-function loadRecord(id:any , useMobile = false) {
+function loadRecord(id:any , useMobile = false){
   const endParam = useMobile ? 'mobile' : 'id'
   return API.get('vivid-api', `case-details?${endParam}=${id}`, getDefaultParamswithoutlimitkey(null))
     .then((response) => response)
     .catch((error) => Promise.reject(error));
 }
+function searchCaseId(mobile:any){
+  return API.get('vivid-api',`case-details/get-case-number?mobile_number=${mobile}`,getDefaultParamswithoutlimitkey(null))
+  .then((response)=>response)
+  .catch((error)=>Promise.reject(error))
+}
 
 export const casesServices = {
     loadRecords,
-    loadRecord
+    loadRecord,
+    searchCaseId
 }

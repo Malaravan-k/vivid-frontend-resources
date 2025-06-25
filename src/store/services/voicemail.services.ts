@@ -1,11 +1,10 @@
 import { API } from "aws-amplify";
 import { getDefaultParamswithoutlimitkey, buildQuery} from "../../helper/tools";
 
-const constantName = 'call-logs'
+const constantName = 'voicemails'
 
-function getAllVoiceMails(agentId:string ,paginationParams:any){
-    const queryParams = buildQuery(paginationParams)
-    return API.get('vivid-api', `${constantName}/voice-mails?user_number=${agentId}`, getDefaultParamswithoutlimitkey(null,{queryStringParameters : queryParams}))
+function getAllVoiceMails(){
+    return API.get('vivid-api', `${constantName}`, getDefaultParamswithoutlimitkey(null))
          .then((response)=>response)
          .catch((error)=>Promise.reject(error))
 }

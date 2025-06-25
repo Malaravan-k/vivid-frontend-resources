@@ -7,8 +7,9 @@ import { RootState } from '../../store/index';
 import { initializeDevice, acceptIncomingCall, rejectIncomingCall, disconnectDevice } from '../../utils/twilioDevice';
 import IncomingCallModal from '../../components/CaseDetails/IncomingCallModal';
 import { callerActions } from '../../store/actions/caller.action';
-import { useSocket } from '../../context/SocketContext';
+import { useCall } from '../../context/CallContext';
 import { userActions } from '../../store/actions/user.actions';
+import { casesActions } from '../../store/actions/cases.actions';
 
 interface LayoutProps {
   children: ReactNode;
@@ -21,7 +22,8 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate()
   const { isLoggedIn, user } = useSelector((state: RootState) => state.sessionReducer);
   const { primaryMobileNumber } = useSelector((state: RootState) => state.userReducer);
-  const [incomingCall, setIncomingCall] = useState<any>(null);
+  const {caseId} = useSelector((state: RootState) => state.caseReducer);
+  // const [incomingCall, setIncomingCall] = useState<any>(null);
   const [callerNumber, setCallerNumber] = useState('');
   const [callAccepted, setCallAccepted] = useState(false);
   const [showIncomingModal, setShowIncomingModal] = useState(false);
@@ -29,8 +31,8 @@ const Layout = ({ children }: LayoutProps) => {
   const callAcceptedRef = useRef(false);
   const autoRejectTimeout = useRef<NodeJS.Timeout | null>(null);
   const dispatch = useDispatch();
-  const { connectSocket, callStatus, setCallStatus } = useSocket()
-  console.log("activeCall", activeCall)
+  const { connectSocket, callStatus, setCallStatus, startCall,incomingCall, setIncomingCall} = useCall()
+  console.log("activeCall from layout", activeCall)
   const userId = user?.['custom:userId']
   const userRole = user?.["custom:role"];
 
@@ -60,10 +62,13 @@ const Layout = ({ children }: LayoutProps) => {
     }
     console.log("Incoming call with parameters:", conn.parameters);
     const from = conn.parameters.From || 'Unknown';
-
+    dispatch(casesActions.getCaseId(from.replace(/\D/g, '')))
     setCallerNumber(from.replace(/\D/g, ''));
     setIncomingCall(conn);
-    setShowIncomingModal(true);
+    setTimeout(()=>{
+      setShowIncomingModal(true);
+    },1000)
+   
     setCallStatus('Incoming call...');
     callAcceptedRef.current = false;
 
@@ -93,30 +98,39 @@ const Layout = ({ children }: LayoutProps) => {
     }
   }, [primaryMobileNumber, dispatch, handleIncomingCall, isLoggedIn, user]);
 
-  const acceptCall = async () => {
-    if (!isLoggedIn || !user) return;
+const acceptCall = async () => {
+  if (!isLoggedIn || !user) return;
 
-    callAcceptedRef.current = true;
-    setCallStatus('Connecting...');
+  callAcceptedRef.current = true;
+  setCallStatus('Connecting...');
 
-    if (autoRejectTimeout.current) {
-      clearTimeout(autoRejectTimeout.current);
-      autoRejectTimeout.current = null;
-    }
-
-    const success = acceptIncomingCall();
-    if (success) {
-      setCallAccepted(true);
-      setActiveCall(incomingCall); // Store the active call
-      navigate(`/cases/918300606225`,{state:'incomingCall'}); // Navigate to specific case
-      setShowIncomingModal(false);
-      setCallStatus('in-progress');
-    } else {
-      setCallStatus('failed');
-      setShowIncomingModal(false);
-      setCallAccepted(false);
-    }
-  };
+  if (autoRejectTimeout.current) {
+    clearTimeout(autoRejectTimeout.current);
+    autoRejectTimeout.current = null;
+  }
+  const success = acceptIncomingCall();
+  if (success && caseId) {
+    setCallAccepted(true);
+    setActiveCall(incomingCall);
+    
+    // Use the CallContext to start the call
+    startCall(caseId, callerNumber, incomingCall); // Use actual case ID here
+    
+    navigate(`/cases/${callerNumber}`, { 
+      state: { 
+        incoming: true,
+        callerNumber,
+      } 
+    });
+    
+    setShowIncomingModal(false);
+    setCallStatus('in-progress');
+  } else {
+    setCallStatus('failed');
+    setShowIncomingModal(false);
+    setCallAccepted(false);
+  }
+};
 
   useEffect(() => {
     if (!activeCall) return;
@@ -145,24 +159,13 @@ const Layout = ({ children }: LayoutProps) => {
     rejectIncomingCall();
     setShowIncomingModal(false);
     setCallAccepted(false);
-
+    setCallStatus('rejected')
     if (autoRejectTimeout.current) {
       clearTimeout(autoRejectTimeout.current);
       autoRejectTimeout.current = null;
     }
   };
 
-  const hangupCall = () => {
-    console.log("Hanging up call");
-    disconnectDevice();
-    setShowIncomingModal(false);
-    setCallStatus('Call ended');
-    setCallAccepted(false);
-  };
-  console.log("isLoggedIn", isLoggedIn)
-  console.log("user", user)
-  console.log("userRole", userRole)
-  console.log("primaryMobileNumber", primaryMobileNumber)
   useEffect(() => {
     // Only initialize if user is logged in, exists, and has the right role
     if (isLoggedIn && user && userRole === 'User' && primaryMobileNumber) {
@@ -197,7 +200,7 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#ECF2FF' }}>
       {(isLoggedIn && user) && <Navbar />}
-      <main className=" max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <main className=" max-w-screen-2xl xl:min-w-full mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {children}
       </main>
 
@@ -209,7 +212,6 @@ const Layout = ({ children }: LayoutProps) => {
           callStatus={callStatus}
           acceptCall={acceptCall}
           rejectCall={rejectCall}
-          onHangup={hangupCall}
         />
       )}
     </div>

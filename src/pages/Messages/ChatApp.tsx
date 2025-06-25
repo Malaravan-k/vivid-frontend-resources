@@ -1,320 +1,139 @@
-import React, { useEffect, useState } from 'react';
-import { StreamChat } from 'stream-chat';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import UserList from './UserList';
 import ChatWindow from './ChatWindow';
+import { chatActions } from '../../store/actions/chat.actions';
+import { RootState } from '../../store/index';
+import { MessageCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { initializeSocket, getSocket } from '../../utils/socketService';
 import OwnerInfo from './OwnerInfo';
-import { dispatch } from '../../store';
-import { casesActions } from '../../store/actions/cases.actions';
-import { useSelector } from 'react-redux';
-import {RootState} from '../../store/index'
-import { useLocation } from 'react-router-dom';
-
-interface User {
-  id: string;
-  name: string;
-  phone: string;
-  online?: boolean;
-  last_active?: string;
-}
-
-interface OwnerInfo {
-  idCase: string;
-  address: string;
-  filingDate: string;
-  assessedValue: string;
-  amountOwed: string;
-  propertyType: string;
-  propertyStatus: string;
-}
-
-interface StreamTokenData {
-  token: string;
-  api_key: string;
-}
 
 const ChatApp: React.FC = () => {
+  const dispatch = useDispatch();
   const location = useLocation();
-  console.log("location",location)
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [client, setClient] = useState<StreamChat | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [activeChannel, setActiveChannel] = useState<any>(null);
-  const [ownerInfo, setOwnerInfo] = useState<any | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { loading: casesLoading, record } = useSelector((state: RootState) => state.caseReducer);
-  const { user, isLoggedIn} = useSelector((state: RootState) => state.sessionReducer);
- useEffect(()=>{
-  setOwnerInfo(record)
-}, [record])
-console.log("currentUserId",currentUserId)
-useEffect(() => {
-  if (location.state) {
-    const { customer_id, channel_id,agent_id} = location.state;
 
-    if (customer_id && channel_id && client && currentUserId) {
-      autoSelectUser(customer_id, channel_id , agent_id);
-    }
-  }
-}, [location.state, client, currentUserId]);
-console.log("client!!!!!", client)
-
-const autoSelectUser = async (customer_id: User, channelId: string , agent_id :string) => {
-  try {
-    console.log("user>>>>>>>",customer_id)
-    console.log("channelId",channelId);
-    
-    // Use the passed channel ID to create or get the channel
-    const channel = client!.channel('messaging', channelId, {
-      members: [agent_id, customer_id],
-    });
-
-    await channel.watch();
-    setActiveChannel(channel);
-    const userToSelect = users.find(u => u.id === customer_id) || {
-        id: customer_id,
-        name: customer_id,
-        phone: customer_id
-      };
-      
-    setSelectedUser(userToSelect);
-    // Load owner info
-    const useMobile = true;
-    const Id = user?.name.replace('+', '');
-    dispatch(casesActions.loadRecord(Id, useMobile));
-  } catch (err) {
-    console.error('Error auto-selecting user:', err);
-  }
-};
-
+  const {
+    loading,
+    error,
+    isInitialized,
+    users,
+    selectedUser,
+    socketConnected
+  } = useSelector((state: RootState) => state.chatReducer);
   
-  const agentNumber = localStorage.getItem('primary_mobile_number')?.replace(/\D/g, '');
-  const apiEndpoint = import.meta.env.VITE_APP_CALLING_SYSTEM_URL;
+  const agentNumber = localStorage.getItem('primary_mobile_number');
+  console.log("agentNumber",agentNumber);
+  
+  const tokenurl = import.meta.env.VITE_APP_CALLING_SYSTEM_URL || 'ws://localhost:3001';
 
-  // localStorage keys
-  const STREAM_TOKEN_KEY = 'stream_token_data';
-
-useEffect(() => {
-  initializeChat();
-  // Cleanup function to disconnect when component unmounts
-  return () => {
-    if (client) {
-      client.disconnectUser().catch(err => 
-        console.warn('Error during cleanup disconnect:', err)
-      );
+  // Initialize users and socket
+  useEffect(() => {
+    if (agentNumber && !isInitialized) {
+      dispatch(chatActions.getUsers(agentNumber));
     }
-  };
-}, []); //
+  }, [dispatch, agentNumber, isInitialized]);
 
-  // Helper function to get stored token data
-  const getStoredTokenData = (): StreamTokenData | null => {
-    try {
-      const storedData = localStorage.getItem(STREAM_TOKEN_KEY);
-      if (storedData) {
-        const tokenData: StreamTokenData = JSON.parse(storedData);
-        return tokenData;
-      }
-    } catch (error) {
-      console.error('Error reading stored token:', error);
-      localStorage.removeItem(STREAM_TOKEN_KEY);
-    }
-    return null;
-  };
-  const storeTokenData = (token: string, api_key: string): void => {
-    const tokenData: StreamTokenData = {
-      token,
-      api_key
-    };
-    localStorage.setItem(STREAM_TOKEN_KEY, JSON.stringify(tokenData));
-  };
-const initializeChat = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    let token: string;
-    let api_key: string;
-    const storedTokenData = getStoredTokenData();
-    console.log("storedTokenData",storedTokenData);
-    
-    if (storedTokenData) {
-      token = storedTokenData.token;
-      api_key = storedTokenData.api_key;
-    } else {
-      const response = await fetch(`${apiEndpoint}/stream-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent_no: agentNumber,
-        }),
-      });
+  // Initialize socket connection
+  useEffect(() => {
+    const socket = initializeSocket(tokenurl);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      const responseData = await response.json();
-      token = responseData.token;
-      api_key = responseData.api_key;
-      storeTokenData(token, api_key);
-    }
-
-    // Step 2: Create a fresh client instance
-    const streamClient = StreamChat.getInstance(api_key);
-   
-    const userId = agentNumber?.replace(/\D/g, '');
-    console.log("userId",userId);
-    
-    console.log("streamClient:::",streamClient);
-    
-    // Step 3: Always connect the user (no need to check if already connected)
-    await streamClient.connectUser(
-      {
-        id: `${userId}`,
-        name: agentNumber,
-      },
-      token
-    );
-
-    setClient(streamClient);
-    setCurrentUserId(userId);
-
-    await loadUsers(streamClient);
-
-    setLoading(false);
-  } catch (err) {
-    console.error('Error initializing chat:', err);
-    
-    if (err instanceof Error && (err.message.includes('401') || err.message.includes('403'))) {
-      localStorage.removeItem(STREAM_TOKEN_KEY);
-      console.log('Cleared stored credentials due to authentication error');
-    }
-    
-    // setError(err instanceof Error ? err.message : 'Failed to initialize chat');
-    setLoading(false);
-  }
-};
-
-const loadUsers = async (streamClient: StreamChat) => {
-  try {
-
-    console.log("Hiiiiiii Vanakkam")
-    const userId = agentNumber?.replace(/\D/g, '');
-    const channelsResponse = await streamClient.queryChannels(
-      { 
-        type: 'messaging',
-        members: { $in: [`${userId}`] } 
-      },
-      { last_message_at: -1 },
-      { 
-        limit: 50,
-        member: true,
-        presence: true
-      }
-    );
- console.log("channelsResponse",channelsResponse)
-    // Handle different response structures
-    const channels = Array.isArray(channelsResponse) ? 
-      channelsResponse : 
-      (channelsResponse.channels || []);
-
-    // Extract unique user IDs from channel members
-    const relatedUserIds = new Set<string>();
-    
-    channels.forEach((channel: any) => {
-      const members = channel.state?.members || channel.members || [];
-      
-      Object.values(members).forEach((member: any) => {
-        const memberId = member.user_id || member.user?.id;
-        if (memberId && memberId !== `${userId}`) {
-          relatedUserIds.add(memberId);
-        }
-      });
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
+      dispatch(chatActions.setSocketConnected(true));
     });
 
-    let usersList: User[] = [];
-    console.log("usersList::",usersList)
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      dispatch(chatActions.setSocketConnected(false));
+    });
 
-    if (relatedUserIds.size > 0) {
-      const usersResponse = await streamClient.queryUsers(
-        { id: { $in: Array.from(relatedUserIds) } },
-        { last_active: -1 },
-        { limit: 50 }
-      );
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      dispatch(chatActions.setSocketConnected(false));
+    });
 
-      const usersData = Array.isArray(usersResponse) ? 
-        usersResponse : 
-        (usersResponse.users || []);
+    // Handle incoming messages
+    socket.on('new_message', (messageData) => {
+      console.log('New message received from socket:', messageData);
+      if(messageData?.author !== agentNumber){
+      dispatch(chatActions.receiveMessage(messageData));
+      }
+    });
 
-      usersList = usersData.map((user: any) => ({
-        id: user.id,
-        name: user.name || user.id,
-        phone: user.phone || user.id,
-        online: user.online,
-        last_active: user.last_active,
-      }));
-    }
+    // Cleanup on unmount
+    return () => {
+      socket.disconnect();
+    };
+  }, [dispatch, tokenurl]);
 
-
-
-    setUsers(usersList);
-  } catch (err) {
-    console.error('Error loading users:', err);
-    setError('Failed to load chat history. Please try again.');
-    setUsers([]);
-  }
-};
-
-  const selectUser = async (user: User) => {
-    try {
-      if (!client || !currentUserId) return;
-      setSelectedUser(user);
-      console.log("user" , user)
-      console.log("location?.state?.channel_id",location?.state?.channel_id);
+  // Join conversation room when user is selected
+  useEffect(() => {
+    if (selectedUser?.conversation_sid && socketConnected) {
+      const socket = getSocket();
+      console.log('Joining conversation room:', selectedUser.conversation_sid);
       
-      // Create or get existing channel
-      const userId = user?.name.replace(/\D/g, '')
-      const channelId = `${currentUserId}-${userId}`
-      const channel = client.channel('messaging',channelId,{
-        members: [`${currentUserId}`, `${userId}`],
-      });
-      await channel.watch();
-      setActiveChannel(channel);
-      // Load owner info
-      const useMobile = true;
-      const Id = user?.name.replace('+', '')
-      dispatch(casesActions.loadRecord(Id , useMobile))
-    } catch (err) {
-      console.error('Error selecting user:', err);
+      // Join the conversation room
+      socket.emit('join', { conversation_sid: selectedUser.conversation_sid });
+
+      // Cleanup on conversation change
+      return () => {
+        socket.emit('leave', { conversation_sid: selectedUser.conversation_sid });
+      };
     }
-  };
+  }, [selectedUser?.conversation_sid, socketConnected]);
 
+  // Handle navigation from external sources
+  useEffect(() => {
+    if (location.state && isInitialized) {
+      const { customer_id, conversation_id, response } = location.state;
+      if (response?.conversation_sid) {
+        const userToSelect = users.find(u => u.conversation_sid === response.conversation_sid) || response;
+        dispatch(chatActions.selectUser(userToSelect));
+      } else if (customer_id && conversation_id) {
+        const userToSelect = users.find(u => u.conversation_sid === conversation_id) || {
+          conversation_sid: conversation_id,
+          friendly_name: customer_id,
+          owner_no: customer_id
+        };
+        dispatch(chatActions.selectUser(userToSelect));
+      }
+    }
+  }, [location.state, isInitialized, users, dispatch]);
 
-
-  if (loading) {
+  if (loading && !isInitialized) {
     return (
-      <div className="min-h-screen  flex items-center justify-center">
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-100 flex items-center justify-center z-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing chat...</p>
+          <div className="relative">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <MessageCircle className="w-8 h-8 text-white" />
+            </div>
+            <Loader2 className="absolute -top-1 -right-1 w-6 h-6 text-blue-600 animate-spin" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Initializing Chat</h3>
+          <p className="text-gray-600">Setting up your conversations...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !isInitialized) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-600 text-2xl">!</span>
+      <div className="fixed inset-0 bg-gradient-to-br from-red-50 via-white to-pink-100 flex items-center justify-center z-50">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span className="text-white text-2xl font-bold">!</span>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading chat</h3>
-          <p className="text-gray-500 mb-4">{error}</p>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Chat</h3>
+          <p className="text-gray-600 mb-6">
+            {typeof error === 'string' ? error : 'Please check your connection and try again.'}
+          </p>
           <button
-            onClick={initializeChat}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => dispatch(chatActions.getUsers(agentNumber))}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
-            Retry
+            Retry Connection
           </button>
         </div>
       </div>
@@ -322,23 +141,16 @@ const loadUsers = async (streamClient: StreamChat) => {
   }
 
   return (
-    <div className="rounded-xl overflow-hidden bg-gray-100">
-      <div className="flex h-[700px] bg-white ">
-        <UserList 
-          users={users}
-          selectedUser={selectedUser}
-          onUserSelect={selectUser}
-        />
-        <ChatWindow 
-          selectedUser={selectedUser}
-          activeChannel={activeChannel}
-          client={client}
-        />
-        <OwnerInfo 
-          selectedUser={selectedUser}
-          ownerInfo={ownerInfo}
-          casesLoading = {casesLoading}
-        />
+    <div className="mt-16 fixed inset-0 overflow-hidden">
+      <div className="absolute inset-4">
+        {/* Chat Interface */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20 h-full">
+          <div className="flex h-full">
+            <UserList />
+            <ChatWindow />
+            <OwnerInfo/>
+          </div>
+        </div>
       </div>
     </div>
   );

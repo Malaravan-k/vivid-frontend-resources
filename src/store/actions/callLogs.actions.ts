@@ -3,10 +3,10 @@ import { callLogsServices } from "../services/callLogs.services";
 import { callLogsConstants } from "../constants/callLogs.constants";
 
 // Load all voice messages
-function loadCallLogs(agentId: string , paginationParams:any) {
+function loadCallLogs() {
   return (dispatch: Dispatch) => {
-    dispatch(request(agentId));
-    callLogsServices.getCallLogs(agentId ,paginationParams).then(
+    dispatch(request());
+    callLogsServices.getCallLogs().then(
       (res) => {
         const { response, error, message } = res;
         const records =response?.call_logs_summary ? response.call_logs_summary : [];
@@ -25,8 +25,8 @@ function loadCallLogs(agentId: string , paginationParams:any) {
     );
   };
 
-  function request(agentId: string) {
-    return { type: callLogsConstants.LOAD_CALLLOGS, agentId };
+  function request() {
+    return { type: callLogsConstants.LOAD_CALLLOGS };
   }
   function success(records: any[]) {
     return { type: callLogsConstants.LOAD_CALLLOGS_SUCCESS, records };
@@ -42,7 +42,6 @@ function loadCallLogsDetails(user_number:any, owner_number:any) {
     dispatch(request(user_number))
     callLogsServices.getCallLogsDetails(user_number,owner_number).then(
       (res) => {
-        console.log("res,,,,,,,,,,,,",res)
         const { response, error, message } = res;
         const callLogsDetails = response?.call_logs || res;
         if (error) {
@@ -70,6 +69,8 @@ function loadCallLogsDetails(user_number:any, owner_number:any) {
     return { type: callLogsConstants.LOAD_CALLLOG_DETAILS_ERROR, error, message };
   }
 }
+
+
 
 export const callLogsActions = {
   loadCallLogs,

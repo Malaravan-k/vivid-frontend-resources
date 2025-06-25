@@ -2,59 +2,20 @@ import { Dispatch } from "@reduxjs/toolkit";
 import { chatServices } from "../services/chat.services";
 import { chatConstants } from "../constants/chat.constants";
 import { NavigateFunction } from "react-router-dom";
+import { casesActions } from "./cases.actions";
 
-function getStreamToken(userNo: string, ownerNo: string) {
-  return (dispatch: Dispatch) => {
-    dispatch(request({ userNo, ownerNo }));
-    chatServices.getStreamToken({ user_no: userNo, owner_no: ownerNo }).then(
-      async (res) => {
-        try {
-          // Initialize Stream client with the token
-          const userId = userNo.replace(/\D/g, '');
-          const client = await chatServices.initializeStreamClient(userId, res.token, res.api_key);
-
-          dispatch(success(res));
-          dispatch(initializeChat(client, []));
-
-          // Load users and channels after successful initialization
-          dispatch(getUsers());
-          dispatch(getUserChannels(userId));
-        } catch (error) {
-          dispatch(failure(true, error.toString()));
-        }
-      },
-      (error) => {
-        if (error && error.message) {
-          error = error.message;
-        }
-        dispatch(failure(true, error.toString()));
-      }
-    );
-  };
-
-  function request(data: any) {
-    return { type: chatConstants.GET_STREAM_TOKEN, data };
-  }
-  function success(record: any) {
-    return { type: chatConstants.GET_STREAM_TOKEN_SUCCESS, record };
-  }
-  function failure(error: any, message: any) {
-    return { type: chatConstants.GET_STREAM_TOKEN_ERROR, error, message };
-  }
-}
-
-function initializeChat(client: any, channels: any) {
-  return (dispatch: Dispatch) => {
-    dispatch({ type: chatConstants.INITIALIZE_CHAT_SUCCESS, client, channels });
-  };
-}
-
-function getUsers() {
+function getUsers(agentId: string) {
   return (dispatch: Dispatch) => {
     dispatch(request());
-    chatServices.getUsers().then(
+    chatServices.getUsers(agentId).then(
       (res) => {
-        dispatch(success(res.users || []));
+        console.log("Users response:", res);
+        const { response, error, message } = res;
+        if (error) {
+          dispatch(failure(error, message));
+        } else {
+          dispatch(success(response || []));
+        }
       },
       (error) => {
         if (error && error.message) {
@@ -76,12 +37,13 @@ function getUsers() {
   }
 }
 
-function getUserChannels(userId: string) {
+function getConversation(conversationId: string) {
   return (dispatch: Dispatch) => {
     dispatch(request());
-    chatServices.getUserChannels(userId).then(
-      (channels) => {
-        dispatch(success(channels || []));
+    chatServices.getConversation(conversationId).then(
+      (res) => {
+        console.log("Conversation response:", res);
+        dispatch(success(res));
       },
       (error) => {
         if (error && error.message) {
@@ -93,43 +55,57 @@ function getUserChannels(userId: string) {
   };
 
   function request() {
-    return { type: chatConstants.GET_USER_CHANNELS };
+    return { type: chatConstants.GET_CONVERSATION };
   }
   function success(record: any) {
-    return { type: chatConstants.GET_USER_CHANNELS_SUCCESS, record };
+    return { type: chatConstants.GET_CONVERSATION_SUCCESS, record };
   }
   function failure(error: any, message: any) {
-    return { type: chatConstants.GET_USER_CHANNELS_ERROR, error, message };
+    return { type: chatConstants.GET_CONVERSATION_ERROR, error, message };
   }
 }
 
-function selectUser(user: any, currentUserId: string) {
-  return async (dispatch: Dispatch) => {
-    try {
-      dispatch({ type: chatConstants.SELECT_USER, user });
-
-      // Get or create channel between current user and selected user
-      const channel = await chatServices.getOrCreateChannel(currentUserId, user.id);
-      dispatch({ type: chatConstants.SET_ACTIVE_CHANNEL, channel });
-
-      // Also fetch owner info for this user
-      dispatch(getOwnerInfo(user.id));
-    } catch (error) {
-      console.error('Error selecting user:', error);
-    }
-  };
-}
-
-function createUser(phoneNumber: string, name?: string) {
+function sendMessage(conversationId: string, senderId: string, message: string) {
   return (dispatch: Dispatch) => {
-    dispatch(request({ phoneNumber, name }));
-    chatServices.createUser({ phoneNumber, name }).then(
+    // Create optimistic message
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      conversation_sid: conversationId,
+      author: senderId,
+      body: message,
+      timestamp: new Date().toISOString(),
+      status: 'sending',
+      isTemp: true
+    };
+    
+    // Add optimistic message to UI immediately
+    dispatch({ 
+      type: chatConstants.ADD_MESSAGE, 
+      messageData: optimisticMessage 
+    });
+    
+    dispatch(request());
+    
+    chatServices.sendMessage({
+      conversation_sid: conversationId,
+      author: senderId,
+      message: message,
+    }).then(
       (res) => {
-        dispatch(success(res));
-        // Refresh users list
-        dispatch(getUsers());
+        console.log("Message sent successfully:", res);
+        const messageWithMetadata = {
+          ...res,
+          conversation_sid: conversationId,
+          author: senderId,
+          body: message,
+          timestamp: res.timestamp || new Date().toISOString(),
+          id: res.id || `msg-${Date.now()}`,
+          status: 'sent'
+        };
+        dispatch(success(messageWithMetadata));
       },
       (error) => {
+        console.error("Failed to send message:", error);
         if (error && error.message) {
           error = error.message;
         }
@@ -138,26 +114,49 @@ function createUser(phoneNumber: string, name?: string) {
     );
   };
 
-  function request(data: any) {
-    return { type: chatConstants.CREATE_USER, data };
+  function request() { 
+    return { type: chatConstants.SEND_MESSAGE }; 
   }
-  function success(record: any) {
-    return { type: chatConstants.CREATE_USER_SUCCESS, record };
+  function success(record: any) { 
+    return { type: chatConstants.SEND_MESSAGE_SUCCESS, record }; 
   }
-  function failure(error: any, message: any) {
-    return { type: chatConstants.CREATE_USER_ERROR, error, message };
+  function failure(error: any, message: any) { 
+    return { type: chatConstants.SEND_MESSAGE_ERROR, error, message }; 
   }
 }
 
+function selectUser(user: any) {
+  return async (dispatch: Dispatch) => {
+    try {
+      const conversationId = user?.conversation_sid;
+      dispatch({ type: chatConstants.SELECT_USER, user });
+      
+      if (conversationId) {
+        dispatch(getConversation(conversationId));
+        dispatch({ type: chatConstants.SET_ACTIVE_CONVERSATION, conversationId });
+      }
 
-function createNewUser(agent_no: string, customer_no: string, navigate?: NavigateFunction) {
+      // Load case information for the selected user
+      if (user?.owner_no) {
+        const phoneNumber = user.owner_no.replace(/\D/g, ''); // Remove non-digits
+        dispatch(casesActions.loadRecord(phoneNumber));
+      }
+    } catch (error) {
+      console.error('Error selecting user:', error);
+    }
+  };
+}
+
+function createUser(agentId: string, phoneNumber: string, navigate?: NavigateFunction) {
   return (dispatch: Dispatch) => {
     dispatch(request());
-    chatServices.createNewUser(agent_no, customer_no).then(
+    chatServices.createUser({
+      agent_no: agentId,
+      owner_no: phoneNumber,
+    }).then(
       (res) => {
-        console.log("create chat user resss", res)
+        console.log("User created:", res);
         dispatch(success(res));
-        console.log("res", res)
         if (navigate) {
           navigate('/messages', { state: res });
         }
@@ -171,8 +170,8 @@ function createNewUser(agent_no: string, customer_no: string, navigate?: Navigat
     );
   };
 
-  function request(data?: any) {
-    return { type: chatConstants.CREATE_USER, data };
+  function request() {
+    return { type: chatConstants.CREATE_USER };
   }
   function success(record: any) {
     return { type: chatConstants.CREATE_USER_SUCCESS, record };
@@ -182,40 +181,26 @@ function createNewUser(agent_no: string, customer_no: string, navigate?: Navigat
   }
 }
 
-function getOwnerInfo(userId: string) {
-  return (dispatch: Dispatch) => {
-    dispatch(request(userId));
-    chatServices.getOwnerInfo(userId).then(
-      (res) => {
-        dispatch(success(res));
-      },
-      (error) => {
-        if (error && error.message) {
-          error = error.message;
-        }
-        dispatch(failure(true, error.toString()));
-      }
-    );
+function receiveMessage(messageData: any) {
+  console.log("Hii from receive action",messageData);
+  return {
+    type: chatConstants.RECEIVE_MESSAGE,
+    messageData
   };
+}
 
-  function request(userId: string) {
-    return { type: chatConstants.GET_OWNER_INFO, userId };
-  }
-  function success(record: any) {
-    return { type: chatConstants.GET_OWNER_INFO_SUCCESS, record };
-  }
-  function failure(error: any, message: any) {
-    return { type: chatConstants.GET_OWNER_INFO_ERROR, error, message };
-  }
+function setSocketConnected(connected: boolean) {
+  return {
+    type: connected ? chatConstants.SOCKET_CONNECTED : chatConstants.SOCKET_DISCONNECTED
+  };
 }
 
 export const chatActions = {
-  getStreamToken,
-  initializeChat,
   getUsers,
-  getUserChannels,
+  getConversation,
+  sendMessage,
   selectUser,
   createUser,
-  getOwnerInfo,
-  createNewUser
+  receiveMessage,
+  setSocketConnected,
 };
