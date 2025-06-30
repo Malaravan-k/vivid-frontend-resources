@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, Volume2, User, Calendar } from 'lucide-react';
-import CallDetailsModal from './CallDetailsModal';
+import CallDetailsModal from '../../components/VoiceModals/CallDetailsModal';
 import { callLogsActions } from '../../store/actions/callLogs.actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/index';
@@ -10,7 +10,7 @@ import { casesActions } from '../../store/actions/cases.actions';
 interface CallLogSummary {
   last_activity: string;
   latest_call_status: 'completed' | 'failed' | 'no-answer' | 'missed' | 'busy';
-  phone_number: string;
+  owner_number: string;
   total_calls: number;
   voicemails: number;
 }
@@ -57,6 +57,8 @@ const CallLogsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const { records, loading, modalLoading, record, total } = useSelector((state: RootState) => state.callLogsReducer);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  console.log("loading",loading);
+  
 
   // Backend pagination configuration
   const pageSize = 10; // Changed to 5 as requested
@@ -88,9 +90,8 @@ const CallLogsPage: React.FC = () => {
   const handleRowClick = (callSummary: CallLogSummary): void => {
     setSelectedCallSummary(callSummary);
     console.log(callSummary);
-    const user_number = agentId
-    const ownerNumber = callSummary?.phone_number;
-    dispatch(callLogsActions.loadCallLogsDetails(user_number, ownerNumber));
+    const ownerNumber = callSummary?.owner_number;
+    dispatch(callLogsActions.loadCallLogsDetails(ownerNumber));
     dispatch(casesActions.loadRecord(ownerNumber?.replace(/\D/g, '')))
   };
 

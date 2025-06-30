@@ -14,12 +14,21 @@ interface CallState {
   call: any | null;
 }
 
+interface VoicemailNotification {
+  id: string;
+  phoneNumber: string;
+  timestamp: Date;
+  isRead: boolean;
+}
+
 interface CallContextType {
   socket: Socket | null;
   isConnected: boolean;
   activeCall: CallState | null;
   callStatus: string;
-  incomingCall:any
+  incomingCall: any;
+  voicemailNotifications: VoicemailNotification[];
+  unreadVoicemailCount: number;
 
   // Call management methods
   startCall: (caseId: string, ownerNumber: string, call: any) => void;
@@ -31,10 +40,14 @@ interface CallContextType {
   setCallStatus: (status: string) => void;
   setActiveCall: (call: any) => void;
 
+  // Voicemail methods
+  markVoicemailAsRead: (id: string) => void;
+  clearAllVoicemails: () => void;
+
   // Check if current case has active call
   isCurrentCaseInCall: (caseId: string) => boolean;
 
-  // Socket methods
+  // Socket methods 
   connectSocket: () => void;
   disconnectSocket: () => void;
 }
@@ -60,19 +73,29 @@ const initialCallState: CallState = {
 
 export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [callStatus, setCallStatus] = useState('Disconnected');
-  const [incomingCall,setIncomingCall] = useState(null)
+  const [callStatus, setCallStatus] = useState('Device Ready');
+  const [incomingCall, setIncomingCall] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [activeCall, setActiveCall] = useState<CallState | null>(null);
-  console.log("incoming call from context",incomingCall);
+  const [voicemailNotifications, setVoicemailNotifications] = useState<VoicemailNotification[]>([]);
+  console.log("activeCall::::",activeCall);
+  console.log("callStatus:::::",callStatus);
   
-
+  
   const { user, isLoggedIn } = useSelector((state: RootState) => state.sessionReducer);
   const { agentId } = useSelector((state: RootState) => state.callerReducer);
-  console.log("agentId::::",agentId);
-  
+
   const agentNumber = agentId?.replace(/\s+/g, '');
-  console.log("activeCall111((@)(!*!(90329013", activeCall);
+
+  // Calculate unread voicemail count
+  const unreadVoicemailCount = voicemailNotifications.filter(vm => !vm.isRead).length;
+
+  useEffect(() => {
+    const statusArray = ['completed', 'device ready', 'disconnected'];
+    if (statusArray.includes(callStatus.toLowerCase())) {
+      setActiveCall(null);
+    }
+  }, [callStatus]);
 
   // Timer ref for call duration
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -83,6 +106,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       disconnectSocket();
       setActiveCall(null);
       setCallStatus('Disconnected');
+      setVoicemailNotifications([]);
     }
   }, [isLoggedIn]);
 
@@ -90,8 +114,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
   useEffect(() => {
     if (activeCall) {
       setCallStatus(activeCall.status);
-    } else {
-      setCallStatus('Disconnected');
     }
   }, [activeCall?.status]);
 
@@ -146,7 +168,13 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       }
     };
   }, [callStatus, activeCall?.callStartTime]);
-
+  useEffect(()=>{
+    if(!activeCall && ['no-answer'].includes(callStatus.toLowerCase())){
+       setTimeout(()=>{
+         setCallStatus('Device Ready')
+       },5000)
+    }
+  },[activeCall])
   const connectSocket = () => {
     if (socket?.connected) {
       console.log('Socket already connected');
@@ -171,12 +199,25 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       console.log('Socket status update:', data.CallStatus);
       updateCallStatus(data.CallStatus);
     });
-    newSocket.on('voicemail_update',(data)=>{
-    console.log('Voicemail socket is listening',data)
-    })
+
+    newSocket.on('voicemail_update', (data) => {
+      console.log('Voicemail socket is listening', data);
+      // Extract the correct fields from the socket data
+      const phoneNumber = data.owner_no || 'Unknown Number';
+      const isRead = data.voicemail_read === true; // Convert to boolean, default to false
+      
+      // Create new voicemail notification
+      const newVoicemail: VoicemailNotification = {
+        id: `vm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        phoneNumber: phoneNumber,
+        timestamp: new Date(),
+        isRead: isRead
+      };
+      setVoicemailNotifications(prev => [newVoicemail, ...prev]);
+    });
 
     newSocket.on('new_message', (messageData) => {
-    console.log('This is from my Context  socket for message', messageData);
+      console.log('This is from my Context socket for message', messageData);
     });
 
     newSocket.on('connect_error', (error) => {
@@ -211,6 +252,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    console.log("Hi this end call is Triggered now");
     setActiveCall(null);
     setCallStatus('Disconnected');
   };
@@ -227,23 +269,36 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
     } : null);
   };
 
-  const toggleMute = () => {
-    if (!activeCall?.call) {
-      console.error('No active call to mute');
-      return;
-    }
+const toggleMute = () => {
+  if (!activeCall?.call) {
+    console.error('No active call to mute');
+    return;
+  }
 
-    try {
-      const newMuteState = !activeCall.isMuted;
+  try {
+    const newMuteState = !activeCall.isMuted;
+    
+    // Check if mute exists and is a function
+    if (activeCall.call.mute && typeof activeCall.call.mute === 'function') {
       activeCall.call.mute(newMuteState);
+    } else {
+      console.warn('Mute method not available on call object');
+      // Fallback: Just update the UI state
       setActiveCall(prev => prev ? {
         ...prev,
         isMuted: newMuteState
       } : null);
-    } catch (error) {
-      console.error('Error toggling mute:', error);
+      return;
     }
-  };
+    
+    setActiveCall(prev => prev ? {
+      ...prev,
+      isMuted: newMuteState
+    } : null);
+  } catch (error) {
+    console.error('Error toggling mute:', error);
+  }
+};
 
   const setCall = (call: any) => {
     setActiveCall(prev => prev ? {
@@ -252,9 +307,19 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
     } : null);
   };
 
+  const markVoicemailAsRead = (id: string) => {
+    setVoicemailNotifications(prev => 
+      prev.map(vm => vm.id === id ? { ...vm, isRead: true } : vm)
+    );
+  };
+
+  const clearAllVoicemails = () => {
+    setVoicemailNotifications([]);
+  };
+
   const isCurrentCaseInCall = (caseId: string): boolean => {
     return activeCall?.caseId === caseId &&
-      ['in-progress', 'ringing', 'calling', 'connecting', 'initiated','completed'].includes(callStatus.toLowerCase());
+      ['in-progress', 'ringing', 'calling', 'connecting', 'initiated', 'completed'].includes(callStatus.toLowerCase());
   };
 
   const value: CallContextType = {
@@ -262,6 +327,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
     isConnected,
     activeCall,
     callStatus,
+    voicemailNotifications,
+    unreadVoicemailCount,
     startCall,
     endCall,
     updateCallStatus,
@@ -269,6 +336,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
     setActiveCall,
     setCall,
     setCallStatus,
+    markVoicemailAsRead,
+    clearAllVoicemails,
     isCurrentCaseInCall,
     connectSocket,
     disconnectSocket,

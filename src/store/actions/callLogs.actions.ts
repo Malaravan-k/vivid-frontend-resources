@@ -37,10 +37,10 @@ function loadCallLogs() {
 }
 
 // Load single voice message by ID
-function loadCallLogsDetails(user_number:any, owner_number:any) {
+function loadCallLogsDetails(owner_number:any) {
   return (dispatch: Dispatch) => {
-    dispatch(request(user_number))
-    callLogsServices.getCallLogsDetails(user_number,owner_number).then(
+    dispatch(request())
+    callLogsServices.getCallLogsDetails(owner_number).then(
       (res) => {
         const { response, error, message } = res;
         const callLogsDetails = response?.call_logs || res;
@@ -59,8 +59,8 @@ function loadCallLogsDetails(user_number:any, owner_number:any) {
     );
   };
 
-  function request(messageId: string) {
-    return { type: callLogsConstants.LOAD_CALLLOG_DETAILS, messageId };
+  function request() {
+    return { type: callLogsConstants.LOAD_CALLLOG_DETAILS };
   }
   function success(callLogsDetails: any) {
     return { type: callLogsConstants.LOAD_CALLLOG_DETAILS_SUCCESS, callLogsDetails };

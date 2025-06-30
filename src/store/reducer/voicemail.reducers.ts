@@ -2,6 +2,7 @@ import { produce } from 'immer';
 import { voiceMailConstants } from '../constants/voicemail.constants';
 interface VoiceMessagesState {
   loading: boolean;
+  modalLoading:boolean;
   error: boolean | string;
   success: boolean;
   message: string | null;
@@ -23,6 +24,7 @@ interface VoiceMessagesAction {
 
 const initialState: VoiceMessagesState = {
   loading: false,
+  modalLoading:false,
   error: false,
   success: false,
   message: null,
@@ -39,13 +41,17 @@ export default function voiceMailReducer(
   return produce(state, (draft) => {
     switch (action.type) {
       case voiceMailConstants.LOAD_MESSAGES:
-      case voiceMailConstants.LOAD_MESSAGE:
         draft.loading = true;
         draft.error = false;
         draft.success = false;
         draft.message = null;
         break;
-
+       case voiceMailConstants.LOAD_MESSAGE:
+        draft.modalLoading = true;
+        draft.error = false;
+        draft.success = false;
+        draft.message = null;
+        break;
       case voiceMailConstants.LOAD_MESSAGES_SUCCESS:
         draft.loading = false;
         draft.records = action.records || [];
@@ -57,7 +63,7 @@ export default function voiceMailReducer(
         break;
 
       case voiceMailConstants.LOAD_MESSAGE_SUCCESS:
-        draft.loading = false;
+        draft.modalLoading = false;
         draft.record = action.record || {};
         draft.success = true;
         draft.error = false;
@@ -65,8 +71,13 @@ export default function voiceMailReducer(
         break;
 
       case voiceMailConstants.LOAD_MESSAGES_ERROR:
-      case voiceMailConstants.LOAD_MESSAGE_ERROR:
         draft.loading = false;
+        draft.error = action.error || true;
+        draft.message = action.message || null;
+        draft.success = false;
+        break;
+      case voiceMailConstants.LOAD_MESSAGE_ERROR:
+        draft.modalLoading = false;
         draft.error = action.error || true;
         draft.message = action.message || null;
         draft.success = false;

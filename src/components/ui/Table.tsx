@@ -101,7 +101,7 @@ function Table<T extends object>({
                   >
                     {typeof column.accessor === 'function'
                       ? column.accessor(row)
-                      : row[column.accessor] as React.ReactNode}
+                      : row[column.accessor] as React.ReactNode }
                   </td>
                 ))}
               </tr>

@@ -51,7 +51,7 @@ function fetchTwilioNumbers(){
 }
 
 function getUserDetails(userId:string){
-  return API.get('vivid-api',`${constantName}/details?user_id=${userId}`, getDefaultParamswithoutlimitkey(null))
+  return API.get('vivid-api',`${constantName}`, getDefaultParamswithoutlimitkey(null))
   .then((response)=>response)
   .catch((error)=>Promise.reject(error))
 }

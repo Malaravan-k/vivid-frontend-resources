@@ -5,7 +5,7 @@ import UserList from './UserList';
 import ChatWindow from './ChatWindow';
 import { chatActions } from '../../store/actions/chat.actions';
 import { RootState } from '../../store/index';
-import { MessageCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { MessageCircle, Loader2 } from 'lucide-react';
 import { initializeSocket, getSocket } from '../../utils/socketService';
 import OwnerInfo from './OwnerInfo';
 
@@ -23,13 +23,15 @@ const ChatApp: React.FC = () => {
   } = useSelector((state: RootState) => state.chatReducer);
   
   const agentNumber = localStorage.getItem('primary_mobile_number');
-  console.log("agentNumber",agentNumber);
+  console.log("selectedUser", selectedUser);
   
   const tokenurl = import.meta.env.VITE_APP_CALLING_SYSTEM_URL || 'ws://localhost:3001';
 
+  // ALL HOOKS MUST RUN ON EVERY RENDER - MOVED BEFORE EARLY RETURNS
+
   // Initialize users and socket
   useEffect(() => {
-    if (agentNumber && !isInitialized) {
+    if (agentNumber) {
       dispatch(chatActions.getUsers(agentNumber));
     }
   }, [dispatch, agentNumber, isInitialized]);
@@ -57,7 +59,7 @@ const ChatApp: React.FC = () => {
     socket.on('new_message', (messageData) => {
       console.log('New message received from socket:', messageData);
       if(messageData?.author !== agentNumber){
-      dispatch(chatActions.receiveMessage(messageData));
+        dispatch(chatActions.receiveMessage(messageData));
       }
     });
 
@@ -65,7 +67,7 @@ const ChatApp: React.FC = () => {
     return () => {
       socket.disconnect();
     };
-  }, [dispatch, tokenurl]);
+  }, [dispatch, tokenurl, agentNumber]);
 
   // Join conversation room when user is selected
   useEffect(() => {
@@ -83,7 +85,6 @@ const ChatApp: React.FC = () => {
     }
   }, [selectedUser?.conversation_sid, socketConnected]);
 
-  // Handle navigation from external sources
   useEffect(() => {
     if (location.state && isInitialized) {
       const { customer_id, conversation_id, response } = location.state;

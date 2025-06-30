@@ -9,14 +9,12 @@ import { useSelector } from 'react-redux';
 import { dispatch, RootState } from '../../store/index'
 import { casesActions } from '../../store/actions/cases.actions';
 import CopyableText from '../../components/ui/CopyableText';
-import { useCall } from '../../context/CallContext';
 
  
 const CasesTable = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchText, setSearchText] = useState('');
   const navigate = useNavigate();
-  const {setCallStatus} = useCall()
   const { records, loading, total } = useSelector((state: RootState) => state.caseReducer);
   const pageSize = 10;
  
@@ -25,7 +23,7 @@ const CasesTable = () => {
       page: currentPage,
       pageSize: pageSize,
       filter: searchText.trim()
-    }));
+    },navigate));
   }, [currentPage, searchText]);
  
   const handleSearch = () => {
@@ -37,7 +35,7 @@ const CasesTable = () => {
   };
    
   const handleRowClick = (item: Case) => {
-    navigate(`/cases/${item.case_id}`, {
+    navigate(`/cases/${item.case_number}`, {
       state: item
     });
     // setCallStatus('in-progress')
@@ -57,30 +55,29 @@ const CasesTable = () => {
 const columns = [
   {
     header: 'Case ID',
-    accessor: (row: Case) => <CopyableText text={row.case_id} />,
+    accessor: (row: Case) => <CopyableText text={row.case_number || '-'} />,
   },
   {
     header: 'Owner Name', 
-    accessor: 'owner_name',
+    accessor: (row: Case) => row.Full_Name || '-',
   },
   {
     header: 'Mobile Number 1',
-    accessor: (row: Case) => <CopyableText text={row.mobile_number_1} />,
+    accessor: (row: Case) => <CopyableText text={row.Phone_1 || '-'} />,
   },
   {
     header: 'Mobile Number 2',
-    accessor: (row: Case) => <CopyableText text={row.mobile_number_2} />,
+    accessor: (row: Case) => <CopyableText text={row.Phone_2 || '-'} />,
   },
   {
     header: 'Mobile Number 3',
-    accessor: (row: Case) => <CopyableText text={row.mobile_number_3} />,
+    accessor: (row: Case) => <CopyableText text={row.Phone_3 || '-'} />,
   },
   {
-    header: 'Status',
-    accessor: (row: Case) => <StatusBadge status={row.status} />,
+    header: 'Lead Stage',
+    accessor: (row: Case) => <StatusBadge status={row.Lead_Stage || '-'} />,
     className: 'text-center',
   },
-  
 ];
 
  

@@ -31,14 +31,15 @@ export interface User {
 }
 
 export interface Case {
-  case_id: string;
+  case_number: string;
   ownerId: string;
-  owner_name: string;
-  mobile_number_1:string;
-  mobile_number_2:string;
-  mobile_number_3:string;
+  Full_Name: string;
+  Phone_1:string;
+  Phone_2:string;
+  Phone_3:string;
   contactNumber: string;
   status: 'Active' | 'Inactive';
+  Lead_Stage:string | null
   address?: string;
   filingDate?: string;
   assessedValue?: number;

@@ -16,6 +16,7 @@ interface CreateUserPayload {
   phone_number: string;
   name?: string;
   agent_id: string;
+  agent_no : string
 }
 
 interface GetMessagesParams {

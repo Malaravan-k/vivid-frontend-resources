@@ -48,6 +48,8 @@ export default function caseReducer(
   action: UserAction
 ): UserState {
   return produce(state, (draft) => {
+    console.log("action.record",action.record);
+    
     switch (action.type) {
       case casesConstants.LOAD_CASES:
       case casesConstants.LOAD_CASE:
@@ -65,7 +67,7 @@ export default function caseReducer(
         draft.page = action.page ?? 0;
         break;
       case casesConstants.LOAD_CASE_SUCCESS:
-        draft.record = action.record;
+        draft.record = action.record? action.record : {};
         draft.loading = false;
         draft.error = false;
         draft.success = false;

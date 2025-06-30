@@ -5,7 +5,6 @@ import Login from './pages/Login';
 import CasesTable from './pages/cases/CasesTable';
 import CaseDetail from './pages/cases/CaseDetail';
 import SettingsPage from './pages/settings/SettingsTable.jsx';
-import VoiceMailDetails from './pages/VoiceMails/VoiceMailDetails.tsx';
 import VoiceMails from './pages/VoiceMails/VoiceMails.tsx';
 import ChatApp from './pages/Messages/ChatApp.tsx';
 import VoiceTable from './pages/VoiceMessage/VoiceTable.js';
@@ -67,16 +66,6 @@ const router = createBrowserRouter([
       <Layout>
         <NonAdminRoute>
           <VoiceMails />
-        </NonAdminRoute>
-      </Layout>
-    ),
-  },
-  {
-    path: '/voiceMails-details',
-    element: (
-      <Layout>
-        <NonAdminRoute>
-          <VoiceMailDetails />
         </NonAdminRoute>
       </Layout>
     ),

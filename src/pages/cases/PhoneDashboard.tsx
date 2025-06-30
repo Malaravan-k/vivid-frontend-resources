@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState ,useMemo} from 'react';
 import { MdMic, MdMicOff, MdCallEnd } from 'react-icons/md';
 import { BiMessageRounded } from 'react-icons/bi';
 import { motion } from 'framer-motion';
 import { FaPhoneAlt } from 'react-icons/fa';
 import { BsPersonFill, BsFilePost } from 'react-icons/bs';
-
 import { dispatch, RootState } from '../../store/index';
 import {
   getDevice,
@@ -23,10 +22,9 @@ type PhoneDashboardProps = {
   agentNumber: string | null;
   ownerNumber: string | null;
   caseId: string | null;
-  phoneNumbers:string | null;
 };
 
-const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber, caseId,phoneNumbers }) => {
+const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber, caseId }) => {
   const navigate = useNavigate();
   const { success } = useSelector((state: RootState) => state.postCallReducer);
   
@@ -43,18 +41,19 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
 
   const [isPostCallFormOpen, setIsPostCallFormOpen] = useState(false);
   const [lastCallerNumber, setLastCallerNumber] = useState('');
-  const [showPostCallButton, setShowPostCallButton] = useState(false);
-
+  const [showPostCallButton, setShowPostCallButton] = useState(true);
+  const [isInitiatingCall, setIsInitiatingCall] = useState(false); // Add this state
+  
   // Check if this case has an active call
-  const hasActiveCall = caseId ? isCurrentCaseInCall(caseId) : false;
-  console.log("hasActiveCall:::",hasActiveCall);
+const hasActiveCall = useMemo(() => {
+  return caseId ? isCurrentCaseInCall(caseId) : false;
+}, [caseId, activeCall?.caseId, callStatus]);
   // Get call state - only show if this case has the active call
   const currentCallState = hasActiveCall && activeCall ? activeCall : null;
   const isMuted = currentCallState?.isMuted || false;
   const elapsedTime = currentCallState?.elapsedTime || 0;
   const isPostCallAvailable = currentCallState?.isPostCallAvailable || false;
 
-  // Connect socket on component mount
   useEffect(() => {
     connectSocket();
   }, []);
@@ -65,49 +64,64 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
       setLastCallerNumber(currentCallState.ownerNumber);
     }
   }, [currentCallState?.ownerNumber]);
-
   // Handle call status changes to show post-call button
-  useEffect(() => {
-    if (callStatus.toLowerCase() === 'completed') {
-      // Show post-call button after a short delay
-      const timer = setTimeout(() => {
-        setShowPostCallButton(true);
-      }, 1000);
+  // useEffect(() => {
+  //   if (callStatus.toLowerCase() === 'completed') {
+  //     // Show post-call button after a short delay
+  //     const timer = setTimeout(() => {
+  //       setShowPostCallButton(true);
+  //       // setIsPostCallFormOpen(true)
+  //     }, 1000);
       
-      return () => clearTimeout(timer);
-    } else if (callStatus.toLowerCase() !== 'completed') {
-      setShowPostCallButton(false);
-    }
-  }, [callStatus]);
+  //     return () => clearTimeout(timer);
+  //   } else if (callStatus.toLowerCase() !== 'completed') {
+  //     setShowPostCallButton(false);
+  //   }
+  // }, [callStatus]);
 
-  const callOwner = () => {
+  // Reset isInitiatingCall when call status changes
+  useEffect(() => {
+    if (callStatus.toLowerCase() !== 'disconnected' && isInitiatingCall) {
+      setIsInitiatingCall(false);
+    }
+  }, [callStatus, isInitiatingCall]);
+
+const callOwner = async () => {
     const storedToken = localStorage.getItem('twilioToken');
     const dev = getDevice(storedToken);
-
     if (!dev) {
-      console.error("Device error - not initialized");
-      return;
+        console.error("Device error - not initialized");
+        return;
     }
 
     if (!ownerNumber || !caseId) {
-      console.error("Cannot call: No number or case ID provided");
-      return;
+        console.error("Cannot call: No number or case ID provided");
+        return;
     }
 
-    if (activeCall) {
-      console.error("Cannot start new call: Another call is already active");
-      return;
+    if (activeCall && !isCurrentCaseInCall(caseId)) {
+        console.error("Cannot start new call: Another call is already active");
+        return;
     }
 
     setLastCallerNumber(ownerNumber);
-    const newCall = connectCall({ To: ownerNumber, agent: agentNumber });
+    setIsInitiatingCall(true); // Set this before starting the call
     
-    if (newCall) {
-      startCall(caseId, ownerNumber, newCall);
-    } else {
-      console.error("Failed to initiate call");
+    try {
+        const newCall = await connectCall({ To: ownerNumber, agent: agentNumber });
+        
+        if (newCall) {
+            // The Call2 object from your PromiseResult should now be in newCall
+            startCall(caseId, ownerNumber, newCall);
+        } else {
+            console.error("Failed to initiate call");
+            setIsInitiatingCall(false); // Reset on failure
+        }
+    } catch (error) {
+        console.error("Error making call:", error);
+        setIsInitiatingCall(false); // Reset on error
     }
-  };
+};
 
   const handleMessage = () => {
     dispatch(chatActions.createUser(agentNumber, ownerNumber, navigate));
@@ -116,7 +130,8 @@ const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumbe
   const hangup = () => {
     disconnectDevice();
     endCall();
-    setActiveCall(null)
+    setActiveCall(null);
+    setIsInitiatingCall(false); // Reset when hanging up
   };
 
   const handleToggleMute = () => {
@@ -182,15 +197,33 @@ const getPhoneIcon = () => {
 
   const isCallActive = hasActiveCall && callStatus.toLowerCase() === 'in-progress';
   const isCallActionable = hasActiveCall && ['in-progress', 'ringing', 'initiated', 'calling', 'connecting'].includes(callStatus.toLowerCase());
+  // console.log("isInitiatingCall:A:A:A:A",isInitiatingCall);
+  // console.log("caseId",caseId);
+  console.log("activeCall",activeCall);
+  console.log("hasActiveCall",hasActiveCall);
+  
+  
   
   const getDisplayStatus = () => {
+    // If we're initiating a call for this case, show "Calling..."
+    if (isInitiatingCall && caseId) {
+      return 'Calling...';
+    }
+    
+    // If there's an active call but not for this case, show the other call status
     if (activeCall && !hasActiveCall) {
       return `Another call active (${activeCall.ownerNumber})`;
     }
+    
     return callStatus;
   };
 
   const getDisplayStatusColor = () => {
+    // If we're initiating a call, show yellow
+    if (isInitiatingCall) {
+      return 'text-yellow-500';
+    }
+    
     if (activeCall && !hasActiveCall) {
       return 'text-orange-500';
     }
@@ -233,7 +266,7 @@ const getPhoneIcon = () => {
                 transition={{ duration: 0.6 }}
                 className="text-2xl font-bold text-blue-700"
               >
-                {ownerNumber || 'No number available'}
+                {ownerNumber || 'Select a number'}
               </motion.div>
               <motion.div
                 key={getDisplayStatus()}
@@ -291,17 +324,23 @@ const getPhoneIcon = () => {
 
               <motion.button
                 className={`${
-                  activeCall && !hasActiveCall 
+                  (activeCall && !hasActiveCall && !isInitiatingCall) || isInitiatingCall
                     ? 'bg-gray-400 cursor-not-allowed' 
                     : 'bg-green-500 hover:bg-green-600'
                 } text-white font-bold py-3 px-6 rounded-full text-sm min-w-[100px] transition-colors duration-200 flex items-center justify-center space-x-2 shadow-lg`}
                 onClick={callOwner}
-                disabled={!ownerNumber || (activeCall && !hasActiveCall)}
+                disabled={!ownerNumber || (activeCall && !hasActiveCall && !isInitiatingCall) || isInitiatingCall}
                 whileTap={{ scale: 0.95 }}
-                title={activeCall && !hasActiveCall ? 'Another call is active' : 'Start call'}
+                title={
+                  isInitiatingCall 
+                    ? 'Initiating call...' 
+                    : (activeCall && !hasActiveCall) 
+                      ? 'Another call is active' 
+                      : 'Start call'
+                }
               >
                 <FaPhoneAlt size={16} />
-                <span>Call</span>
+                <span>{isInitiatingCall ? 'Calling...' : 'Call'}</span>
               </motion.button>
             </div>
           )}
