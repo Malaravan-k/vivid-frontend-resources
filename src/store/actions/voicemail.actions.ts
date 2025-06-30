@@ -8,8 +8,6 @@ function loadVoiceMails() {
     dispatch(request());
     voiceMailServices.getAllVoiceMails().then(
       (res) => {
-        console.log("ressssss",res);
-        
         const { response, error, message } = res;
         const voiceMails = response?.voicemail_logs ? response.voicemail_logs : []
         if (error) {
@@ -39,19 +37,20 @@ function loadVoiceMails() {
 }
 
 // Load single voice message by ID
-function loadVoiceMaildetails(user_number:any, owner_number:any) {
+function loadVoiceMaildetails(owner_number:any) {
   return (dispatch: Dispatch) => {
-    dispatch(request(user_number));
-    voiceMailServices.getVoiceMailDetails(user_number ,owner_number).then(
+    dispatch(request());
+    voiceMailServices.getVoiceMailDetails(owner_number).then(
       (res) => {
         console.log("res|||||||",res)
         const { response, error, message } = res;
-        const messageDetails = response?.call_logs[0] || res;
+        const messageDetails = response?.voicemails || res;
         console.log("messageDetails",messageDetails);
-        
         if (error) {
           dispatch(failure(true, message));
         } else {
+          console.log("Hiii da");
+          
           dispatch(success(messageDetails));
         }
       },
@@ -64,8 +63,8 @@ function loadVoiceMaildetails(user_number:any, owner_number:any) {
     );
   };
 
-  function request(messageId: string) {
-    return { type: voiceMailConstants.LOAD_MESSAGE, messageId };
+  function request() {
+    return { type: voiceMailConstants.LOAD_MESSAGE };
   }
   function success(record: any) {
     return { type: voiceMailConstants.LOAD_MESSAGE_SUCCESS, record };

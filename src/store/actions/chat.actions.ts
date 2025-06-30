@@ -147,7 +147,7 @@ function selectUser(user: any) {
   };
 }
 
-function createUser(agentId: string, phoneNumber: string, navigate?: NavigateFunction) {
+function createUser(agentId: string | null, phoneNumber: string | null, navigate?: NavigateFunction) {
   return (dispatch: Dispatch) => {
     dispatch(request());
     chatServices.createUser({
@@ -195,6 +195,10 @@ function setSocketConnected(connected: boolean) {
   };
 }
 
+function resetChat(){
+  return { type:chatConstants.RESET_CHAT_STATE}
+}
+
 export const chatActions = {
   getUsers,
   getConversation,
@@ -203,4 +207,5 @@ export const chatActions = {
   createUser,
   receiveMessage,
   setSocketConnected,
+  resetChat
 };

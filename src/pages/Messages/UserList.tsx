@@ -14,7 +14,7 @@ const UserList: React.FC = () => {
   const dispatch = useDispatch();
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { users, usersLoading, selectedUser, socketConnected } = useSelector((state: RootState) => state.chatReducer);
+  const { users, usersLoading, selectedUser } = useSelector((state: RootState) => state.chatReducer);
   const agentId = localStorage.getItem('primary_mobile_number') || 'agent_123';
 
   const filteredUsers = users.filter((user: User) =>
@@ -22,7 +22,6 @@ const UserList: React.FC = () => {
     user.conversation_sid.includes(searchTerm) ||
     user.friendly_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  console.log("selectedUser",selectedUser);
   useEffect(()=>{
     if(selectedUser){
     dispatch(chatActions.selectUser(selectedUser))
@@ -30,7 +29,6 @@ const UserList: React.FC = () => {
   },[])
 
   const handleUserSelect = (user: any) => {
-    console.log("Selecting user:", user);
     dispatch(chatActions.selectUser(user));
   };
 
@@ -53,8 +51,6 @@ const UserList: React.FC = () => {
           <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Messages
           </h2>
-          <div className={`w-3 h-3 rounded-full ${socketConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} 
-               title={socketConnected ? 'Connected' : 'Disconnected'} />
         </div>
         
         {/* Search */}
@@ -99,7 +95,7 @@ const UserList: React.FC = () => {
             <p className="text-gray-500 text-sm">No users match your search criteria</p>
           </div>
         ) : (
-          filteredUsers.map((user) => {
+          filteredUsers.map((user:any) => {
             const isSelected = selectedUser?.conversation_sid === user.conversation_sid;
             
             return (
@@ -116,9 +112,6 @@ const UserList: React.FC = () => {
                   <div className="relative">
                     <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
                       <User className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm">
-                      <div className="w-full h-full bg-emerald-400 rounded-full animate-pulse"></div>
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">

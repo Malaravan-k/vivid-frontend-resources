@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useSelector } from 'react-redux';
-import {RootState} from '../../store/index'
+import { RootState } from '../../store/index';
+import CommonDropdown from './CommonDropdown'; // Import the common dropdown
 
 interface PostCallFormProps {
   isOpen: boolean;
@@ -12,61 +13,147 @@ interface PostCallFormProps {
 }
 
 export interface PostCallFormData {
+  // Call Logs fields
   call_outcome: string;
   call_status: string;
-  call_disposition_tag: string;
-  follow_up_date: string;
-  phone_status: string;
-  validated_phone: string;
-  urgency_score: string;
-  bankruptcy: boolean;
-  litigation: boolean;
-  gpt_summary: string;
-  gpt_follow_up_plan: string;
+  call_date: string;
+  phone_validity_status: string;
+  call_notes: string;
+  gpt_call_summary: string;
+  
+  // Properties fields
+  lead_stage: string;
+  property_standing: string;
+  disposition_interest: string;
+  deal_urgency: string;
+  rep_flag: boolean;
+  flag_reason: string;
+  internal_comments: string;
 }
 
-type FocusedField = 'summary' | 'followup' | null;
+type FocusedField = 'call_notes' | 'gpt_summary' | 'internal_comments' | null;
 
-const PostCallForm: React.FC<PostCallFormProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
+// Dropdown options configuration
+const dropdownOptions = {
+  // Call Logs dropdowns
+  callOutcome: [
+    { value: 'Connected – Interested', label: 'Connected – Interested' },
+    { value: 'Connected – Not Interested', label: 'Connected – Not Interested' },
+    { value: 'Connected – Call Back Later', label: 'Connected – Call Back Later' },
+    { value: 'Connected – Wrong Person', label: 'Connected – Wrong Person' },
+    { value: 'No Answer', label: 'No Answer' },
+    { value: 'Voicemail Left', label: 'Voicemail Left' },
+    { value: 'Number Disconnected', label: 'Number Disconnected' },
+    { value: 'Do Not Call Requested', label: 'Do Not Call Requested' }
+  ],
+  callStatus: [
+    { value: 'Completed', label: 'Completed' },
+    { value: 'Follow-Up Needed', label: 'Follow-Up Needed' },
+    { value: 'Escalate to Manager', label: 'Escalate to Manager' },
+    { value: 'Escalate to Investigator', label: 'Escalate to Investigator' },
+    { value: 'Closed – No Interest', label: 'Closed – No Interest' }
+  ],
+  phoneValidityStatus: [
+    { value: 'Valid – Reached', label: 'Valid – Reached' },
+    { value: 'Valid – Not Reached', label: 'Valid – Not Reached' },
+    { value: 'Invalid – Disconnected', label: 'Invalid – Disconnected' },
+    { value: 'Wrong Number', label: 'Wrong Number' },
+    { value: 'Do Not Call', label: 'Do Not Call' }
+  ],
+  
+  // Properties dropdowns
+  leadStage: [
+    { value: 'Ship Trace Complete – Awaiting Call', label: 'Ship Trace Complete – Awaiting Call' },
+    { value: 'Call Attempted – No Response', label: 'Call Attempted – No Response' },
+    { value: 'Rep Spoke – Interested', label: 'Rep Spoke – Interested' },
+    { value: 'Rep Spoke – Not Interested', label: 'Rep Spoke – Not Interested' },
+    { value: 'Needs Manager Review', label: 'Needs Manager Review' },
+    { value: 'Needs Genealogist', label: 'Needs Genealogist' },
+    { value: 'Needs Investigator', label: 'Needs Investigator' }
+  ],
+  propertyStanding: [
+    { value: 'Not Contacted', label: 'Not Contacted' },
+    { value: 'In Conversation', label: 'In Conversation' },
+    { value: 'Under Contract', label: 'Under Contract' },
+    { value: 'Dead Lead', label: 'Dead Lead' },
+    { value: 'Partial Deal – More Heirs Needed', label: 'Partial Deal – More Heirs Needed' },
+    { value: 'Needs Legal Review', label: 'Needs Legal Review' },
+    { value: 'Genealogy In Progress', label: 'Genealogy In Progress' }
+  ],
+  dispositionInterest: [
+    { value: 'Open to Sell', label: 'Open to Sell' },
+    { value: 'Wants to Keep', label: 'Wants to Keep' },
+    { value: 'Wants Legal Help', label: 'Wants Legal Help' },
+    { value: 'Unclear', label: 'Unclear' },
+    { value: 'N/A', label: 'N/A' }
+  ],
+  dealUrgency: [
+    { value: 'High – Facing Auction', label: 'High – Facing Auction' },
+    { value: 'Medium – Financial Pressure', label: 'Medium – Financial Pressure' },
+    { value: 'Low – No Urgency', label: 'Low – No Urgency' },
+    { value: 'N/A', label: 'N/A' }
+  ],
+  flagReason: [
+    { value: 'Title Issue', label: 'Title Issue' },
+    { value: 'Owner Dispute', label: 'Owner Dispute' },
+    { value: 'Heir Conflict', label: 'Heir Conflict' },
+    { value: 'Uncooperative Owner', label: 'Uncooperative Owner' },
+    { value: 'Need Legal Help', label: 'Need Legal Help' }
+  ]
+};
+
+const PostCallForm: React.FC<PostCallFormProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
 }) => {
-  const {loading ,record} = useSelector((state:RootState)=>state.postCallReducer)
-  const initialState:PostCallFormData = {
-     call_outcome: '',
+  const { loading, record } = useSelector((state: RootState) => state.postCallReducer);
+
+  const initialState: PostCallFormData = {
+    // Call Logs fields
+    call_outcome: '',
     call_status: '',
-    call_disposition_tag: '',
-    follow_up_date:'',
-    phone_status: '',
-    validated_phone:'',
-    urgency_score: '',
-    bankruptcy:false,
-    litigation:false,
-    gpt_summary:'',
-    gpt_follow_up_plan:''
-  }
+    call_date: '',
+    phone_validity_status: '',
+    call_notes: '',
+    gpt_call_summary: '',
+    
+    // Properties fields
+    lead_stage: '',
+    property_standing: '',
+    disposition_interest: '',
+    deal_urgency: '',
+    rep_flag: false,
+    flag_reason: '',
+    internal_comments: ''
+  };
+
   const [formData, setFormData] = useState<PostCallFormData>(initialState);
 
-  console.log("formData",formData);
+  console.log("formData", formData);
 
-  useEffect(()=>{
-   if(record){
-    setFormData({
-    call_outcome: record?.call_outcome || '',
-    call_status: record?.call_status || '',
-    call_disposition_tag: record?.call_disposition_tag || '',
-    follow_up_date:record?.follow_up_date || '',
-    phone_status: record?.phone_status || '',
-    validated_phone:record?.validated_phone || '',
-    urgency_score: record?.urgency_score || '',
-    bankruptcy:record?.bankruptcy|| false,
-    litigation:record?.litigation || false,
-    gpt_summary: record?.gpt_summary || '',
-    gpt_follow_up_plan: record?.gpt_follow_up_plan || ''
-    })
-   }
-  },[record])
+  useEffect(() => {
+    if (record) {
+      setFormData({
+        // Call Logs fields
+        call_outcome: record?.call_outcome || '',
+        call_status: record?.call_status || '',
+        call_date: record?.call_date || '',
+        phone_validity_status: record?.phone_validity_status || '',
+        call_notes: record?.call_notes || '',
+        gpt_call_summary: record?.gpt_call_summary || '',
+        
+        // Properties fields
+        lead_stage: record?.lead_stage || '',
+        property_standing: record?.property_standing || '',
+        disposition_interest: record?.disposition_interest || '',
+        deal_urgency: record?.deal_urgency || '',
+        rep_flag: record?.rep_flag || false,
+        flag_reason: record?.flag_reason || '',
+        internal_comments: record?.internal_comments || ''
+      });
+    }
+  }, [record]);
 
   const [errors, setErrors] = useState<Partial<PostCallFormData>>({});
   const [focusedField, setFocusedField] = useState<FocusedField>(null);
@@ -76,7 +163,7 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
       ...prev,
       [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field as keyof PostCallFormData]) {
       setErrors(prev => ({
@@ -88,11 +175,10 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
 
   const validateForm = (): boolean => {
     const newErrors: Partial<PostCallFormData> = {};
-    
+
     if (!formData.call_outcome) newErrors.call_outcome = 'Call outcome is required';
     if (!formData.call_status) newErrors.call_status = 'Call status is required';
-    if (!formData.call_disposition_tag) newErrors.call_disposition_tag = 'Call disposition tag is required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -113,16 +199,57 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
   };
 
   const handleClearField = () => {
-    if (focusedField === 'summary') {
-      handleInputChange('gpt_summary', '');
-    } else if (focusedField === 'followup') {
-      handleInputChange('gpt_follow_up_plan', '');
+    if (focusedField === 'call_notes') {
+      handleInputChange('call_notes', '');
+    } else if (focusedField === 'gpt_summary') {
+      handleInputChange('gpt_call_summary', '');
+    } else if (focusedField === 'internal_comments') {
+      handleInputChange('internal_comments', '');
+    }
+  };
+
+  const getFieldTitle = () => {
+    switch (focusedField) {
+      case 'call_notes':
+        return 'Call Notes';
+      case 'gpt_summary':
+        return 'GPT Call Summary';
+      case 'internal_comments':
+        return 'Internal Comments';
+      default:
+        return '';
+    }
+  };
+
+  const getFieldValue = () => {
+    switch (focusedField) {
+      case 'call_notes':
+        return formData.call_notes;
+      case 'gpt_summary':
+        return formData.gpt_call_summary;
+      case 'internal_comments':
+        return formData.internal_comments;
+      default:
+        return '';
+    }
+  };
+
+  const getFieldPlaceholder = () => {
+    switch (focusedField) {
+      case 'call_notes':
+        return 'Enter detailed call notes...';
+      case 'gpt_summary':
+        return 'Enter AI-generated call summary...';
+      case 'internal_comments':
+        return 'Enter internal comments or manager/legal notes...';
+      default:
+        return '';
     }
   };
 
   if (!isOpen) return null;
 
-  // Render focused field view if either summary or followup is focused
+  // Render focused field view for expandable text areas
   if (focusedField) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -130,7 +257,7 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
           {/* Header */}
           <div className="flex justify-between items-center p-6 border-b">
             <h2 className="text-xl font-semibold text-gray-800">
-              {focusedField === 'summary' ? 'GPT Summary' : 'GPT Follow Up Plan'}
+              {getFieldTitle()}
             </h2>
             <button
               onClick={() => setFocusedField(null)}
@@ -142,20 +269,15 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
 
           <div className="p-6 space-y-6">
             <textarea
-              value={focusedField === 'summary' ? formData.gpt_summary : formData.gpt_follow_up_plan}
-              onChange={(e) => 
-                handleInputChange(
-                  focusedField === 'summary' ? 'gpt_summary' : 'gpt_follow_up_plan', 
-                  e.target.value
-                )
-              }
+              value={getFieldValue()}
+              onChange={(e) => {
+                const field = focusedField === 'call_notes' ? 'call_notes' : 
+                            focusedField === 'gpt_summary' ? 'gpt_call_summary' : 'internal_comments';
+                handleInputChange(field, e.target.value);
+              }}
               rows={15}
               className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder={
-                focusedField === 'summary' 
-                  ? 'Enter detailed GPT summary...' 
-                  : 'Enter detailed GPT follow up plan...'
-              }
+              placeholder={getFieldPlaceholder()}
             />
 
             <div className="flex justify-end space-x-4 pt-4">
@@ -179,11 +301,11 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
       </div>
     );
   }
-  
+
   // Normal form view
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-800">Post Call Data Entry</h2>
@@ -194,248 +316,213 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
             <X size={24} />
           </button>
         </div>
-        { loading ? (
+        {loading ? (
           <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-blue-500"></div>
-      </div>
-         ) : (
-           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Left Column */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              {/* Call Outcome */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Call Outcome
-                </label>
-                <select
-                  value={formData.call_outcome}
-                  onChange={(e) => handleInputChange('call_outcome', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.call_outcome ? 'border-red-500' : 'border-gray-200'
-                  }`}
-                >
-                  <option disabled value="">Select</option>
-                  <option value="Contacted">Contacted</option>
-                  <option value="No Answer">No Answer</option>
-                  <option value="Voicemail">Voicemail</option>
-                  <option value="Busy">Busy</option>
-                  <option value="Disconnected">Disconnected</option>
-                  <option value="Not Interested">Not Interested</option>
-                </select>
-                {errors.call_outcome && (
-                  <p className="text-red-500 text-sm mt-1">{errors.call_outcome}</p>
-                )}
-              </div>
+            <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-8">
+            {/* Call Logs Section */}
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-800 mb-6 border-b pb-2">Call Logs</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  {/* Call Outcome */}
+                  <CommonDropdown
+                    label="Call Outcome"
+                    value={formData.call_outcome}
+                    onChange={(value) => handleInputChange('call_outcome', value)}
+                    options={dropdownOptions.callOutcome}
+                    error={errors.call_outcome}
+                    required
+                  />
 
-              {/* Call Status */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Call Status
-                </label>
-                <select
-                  value={formData.call_status}
-                  onChange={(e) => handleInputChange('call_status', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.call_status ? 'border-red-500' : 'border-gray-200'
-                  }`}
-                >
-                  <option disabled value="">Select</option>
-                  <option value="Open">Open</option>
-                  <option value="Closed">Closed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Follow Up">Follow Up</option>
-                </select>
-                {errors.call_status && (
-                  <p className="text-red-500 text-sm mt-1">{errors.call_status}</p>
-                )}
-              </div>
+                  {/* Call Status */}
+                  <CommonDropdown
+                    label="Call Status"
+                    value={formData.call_status}
+                    onChange={(value) => handleInputChange('call_status', value)}
+                    options={dropdownOptions.callStatus}
+                    error={errors.call_status}
+                    required
+                  />
 
-              {/* Call Disposition Tag */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Call Disposition Tag
-                </label>
-                <select
-                  value={formData.call_disposition_tag}
-                  onChange={(e) => handleInputChange('call_disposition_tag', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.call_disposition_tag ? 'border-red-500' : 'border-gray-200'
-                  }`}
-                >
-                  <option disabled value="">Select</option>
-                  <option value="Contacted-Open">Contacted-Open</option>
-                  <option value="Contacted-Closed">Contacted-Closed</option>
-                  <option value="No Answer-Open">No Answer-Open</option>
-                  <option value="Voicemail-Open">Voicemail-Open</option>
-                  <option value="Not Interested-Closed">Not Interested-Closed</option>
-                </select>
-                {errors.call_disposition_tag && (
-                  <p className="text-red-500 text-sm mt-1">{errors.call_disposition_tag}</p>
-                )}
-              </div>
+                  {/* Call Date */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Call Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.call_date}
+                      onChange={(e) => handleInputChange('call_date', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
 
-              {/* Follow up Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Follow up Date
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={formData.follow_up_date}
-                    onChange={(e) => handleInputChange('follow_up_date', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  {/* Phone Validity Status Fields */}
+                  <CommonDropdown
+                    label="Phone  - Validity Status"
+                    value={formData.phone_validity_status}
+                    onChange={(value) => handleInputChange('phone_validity_status', value)}
+                    options={dropdownOptions.phoneValidityStatus}
                   />
                 </div>
-              </div>
 
-              {/* Phone Status */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Status
-                </label>
-                <select
-                  value={formData.phone_status}
-                  onChange={(e) => handleInputChange('phone_status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option disabled value="">Select</option>
-                  <option value="Valid">Valid</option>
-                  <option value="Invalid">Invalid</option>
-                  <option value="Disconnected">Disconnected</option>
-                  <option value="Unverified">Unverified</option>
-                </select>
-              </div>
+                <div className="space-y-6">
 
-              {/* Validated Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Validated Phone
-                </label>
-                <input
-                  type="text"
-                  value={formData.validated_phone}
-                  onChange={(e) => handleInputChange('validated_phone', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Phone 1"
-                />
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Urgency Score */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Urgency Score (GPT) :
-                </label>
-                <select
-                  value={formData.urgency_score}
-                  onChange={(e) => handleInputChange('urgency_score', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option disabled value="">Select</option>
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                  <option value={3}>3</option>
-                  <option value={4}>4</option>
-                  <option value={5}>5</option>
-                </select>
-              </div>
-
-              {/* Red Flags */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Red Flags :
-                </label>
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="bankruptcy"
-                      checked={formData.bankruptcy}
-                      onChange={(e) => handleInputChange('bankruptcy', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-200 rounded"
+                  {/* Call Notes - Expandable */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Call Notes
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleFieldFocus('call_notes')}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Expand
+                      </button>
+                    </div>
+                    <textarea
+                      value={formData.call_notes}
+                      onChange={(e) => handleInputChange('call_notes', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Rep notes from the call..."
                     />
-                    <label htmlFor="bankruptcy" className="ml-2 text-sm text-gray-700">
-                      Bankruptcy
-                    </label>
                   </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="litigation"
-                      checked={formData.litigation}
-                      onChange={(e) => handleInputChange('litigation', e.target.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-200 rounded"
+
+                  {/* GPT Call Summary - Expandable */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        GPT Call Summary
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleFieldFocus('gpt_summary')}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Expand
+                      </button>
+                    </div>
+                    <textarea
+                      value={formData.gpt_call_summary}
+                      onChange={(e) => handleInputChange('gpt_call_summary', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="AI-generated summary (optional)..."
                     />
-                    <label htmlFor="litigation" className="ml-2 text-sm text-gray-700">
-                      Litigation
-                    </label>
                   </div>
                 </div>
               </div>
-              {/* GPT Summary */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    GPT Summary
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => handleFieldFocus('summary')}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Expand
-                  </button>
-                </div>
-                <textarea
-                  value={formData.gpt_summary}
-                  onChange={(e) => handleInputChange('gpt_summary', e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter GPT summary..."
-                />
-              </div>
+            </div>
 
-              {/* GPT Follow up plan */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    GPT Follow up plan
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => handleFieldFocus('followup')}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Expand
-                  </button>
+            {/* Properties Section */}
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-800 mb-6 border-b pb-2">Properties</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  {/* Lead Stage */}
+                  <CommonDropdown
+                    label="Lead Stage"
+                    value={formData.lead_stage}
+                    onChange={(value) => handleInputChange('lead_stage', value)}
+                    options={dropdownOptions.leadStage}
+                  />
+
+                  {/* Property Standing */}
+                  <CommonDropdown
+                    label="Property Standing"
+                    value={formData.property_standing}
+                    onChange={(value) => handleInputChange('property_standing', value)}
+                    options={dropdownOptions.propertyStanding}
+                  />
+
+                  {/* Disposition Interest */}
+                  <CommonDropdown
+                    label="Disposition Interest"
+                    value={formData.disposition_interest}
+                    onChange={(value) => handleInputChange('disposition_interest', value)}
+                    options={dropdownOptions.dispositionInterest}
+                  />
+
+                  {/* Deal Urgency */}
+                  <CommonDropdown
+                    label="Deal Urgency"
+                    value={formData.deal_urgency}
+                    onChange={(value) => handleInputChange('deal_urgency', value)}
+                    options={dropdownOptions.dealUrgency}
+                  />
                 </div>
-                <textarea
-                  value={formData.gpt_follow_up_plan}
-                  onChange={(e) => handleInputChange('gpt_follow_up_plan', e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter GPT follow up plan..."
-                />
+
+                <div className="space-y-6">
+                  {/* Rep Flag */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Rep Flag
+                    </label>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="rep_flag"
+                        checked={formData.rep_flag}
+                        onChange={(e) => handleInputChange('rep_flag', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-200 rounded"
+                      />
+                      <label htmlFor="rep_flag" className="ml-2 text-sm text-gray-700">
+                        Yes if issue needs review
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Flag Reason */}
+                  <CommonDropdown
+                    label="Flag Reason"
+                    value={formData.flag_reason}
+                    onChange={(value) => handleInputChange('flag_reason', value)}
+                    options={dropdownOptions.flagReason}
+                  />
+
+                  {/* Internal Comments - Expandable */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Internal Comments
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleFieldFocus('internal_comments')}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Expand
+                      </button>
+                    </div>
+                    <textarea
+                      value={formData.internal_comments}
+                      onChange={(e) => handleInputChange('internal_comments', e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Manager/legal notes..."
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Form Actions */}
-          <div className="flex justify-center pt-6">
-            <button
-              type="submit"
-              className="px-16 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-lg font-medium"
-            >
-              Save
-            </button>
-          </div>
-        </form>
+            {/* Form Actions */}
+            <div className="flex justify-center pt-6">
+              <button
+                type="submit"
+                className="px-16 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-lg font-medium"
+              >
+                Save
+              </button>
+            </div>
+          </form>
         )}
-       
       </div>
     </div>
   );

@@ -10,12 +10,12 @@ import { callerActions } from '../../store/actions/caller.action';
 import { useCall } from '../../context/CallContext';
 import { userActions } from '../../store/actions/user.actions';
 import { casesActions } from '../../store/actions/cases.actions';
+import VoicemailNotification from '../ui/VoicemailNotifications'
 
 interface LayoutProps {
   children: ReactNode;
   requireAuth?: boolean;
 }
-
 
 const Layout = ({ children }: LayoutProps) => {
   const { loading } = useAuth();
@@ -28,31 +28,34 @@ const Layout = ({ children }: LayoutProps) => {
   const [callAccepted, setCallAccepted] = useState(false);
   const [showIncomingModal, setShowIncomingModal] = useState(false);
   const [activeCall, setActiveCall] = useState<any>(null);
+  const [activeVoicemailNotification, setActiveVoicemailNotification] = useState<string | null>(null);
   const callAcceptedRef = useRef(false);
   const autoRejectTimeout = useRef<NodeJS.Timeout | null>(null);
   const dispatch = useDispatch();
-  const { connectSocket, callStatus, setCallStatus, startCall,incomingCall, setIncomingCall} = useCall()
-  console.log("activeCall from layout", activeCall)
+  const { connectSocket, callStatus, setCallStatus, startCall, incomingCall, setIncomingCall, voicemailNotifications, markVoicemailAsRead } = useCall()
   const userId = user?.['custom:userId']
   const userRole = user?.["custom:role"];
-
-  // useEffect(() => {
-  //   if (userRole === 'User' && isLoggedIn && primaryMobileNumber) {
-  //     console.log("Helloooo>>>>>>")
-  //     connectSocket()
-  //     dispatch(userActions.getUserDetails(userId))
-  //   }
-  // }, [isLoggedIn, userRole])
-
-    useEffect(() => {
+  console.log("incomingCall>>>>>>>>",incomingCall);
+  
+  useEffect(() => {
     if (userRole === 'User' && isLoggedIn) {
-      console.log("Helloooo>>>>>>")
       connectSocket()
       dispatch(userActions.getUserDetails(userId))
     }
   }, [isLoggedIn, userRole])
+  useEffect(() => {
+    const latestVoicemail = voicemailNotifications.find(vm => !vm.isRead);
+    if (latestVoicemail && !activeVoicemailNotification) {
+      setActiveVoicemailNotification(latestVoicemail.id);
+    }
+  }, [voicemailNotifications, activeVoicemailNotification]);
 
-
+  const handleVoicemailDismiss = () => {
+    if (activeVoicemailNotification) {
+      markVoicemailAsRead(activeVoicemailNotification);
+      setActiveVoicemailNotification(null);
+    }
+  };
 
   const handleIncomingCall = useCallback((conn: any) => {
     if (!isLoggedIn || !user) {
@@ -153,7 +156,6 @@ const acceptCall = async () => {
     };
   }, [activeCall]);
 
-
   const rejectCall = () => {
     console.log("Rejecting call");
     rejectIncomingCall();
@@ -214,6 +216,17 @@ const acceptCall = async () => {
           rejectCall={rejectCall}
         />
       )}
+
+      {/* Voicemail Notification */}
+      {activeVoicemailNotification && (() => {
+        const notification = voicemailNotifications.find(vm => vm.id === activeVoicemailNotification);
+        return notification ? (
+          <VoicemailNotification
+            phoneNumber={notification.phoneNumber}
+            onDismiss={handleVoicemailDismiss}
+          />
+        ) : null;
+      })()}
     </div>
   );
 };

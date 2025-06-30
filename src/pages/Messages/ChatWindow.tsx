@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Send, Paperclip, Smile, Phone, Video, MoreVertical, ArrowLeft, User, Loader2, Check, CheckCheck, AlertCircle } from 'lucide-react';
+import { Send, Phone, ArrowLeft, User, Loader2, Check, CheckCheck, AlertCircle } from 'lucide-react';
 import { chatActions } from '../../store/actions/chat.actions';
 import { RootState } from '../../store/index';
 
@@ -13,10 +13,9 @@ const ChatWindow: React.FC = () => {
     selectedUser,
     activeConversation,
     messagesLoading,
-    sendingMessage,
-    socketConnected
+    sendingMessage
   } = useSelector((state: RootState) => state.chatReducer);
-  const agentId = localStorage.getItem('primary_mobile_number') || 'agent_123';
+  const agentId = localStorage.getItem('primary_mobile_number');
 
   // Auto-resize textarea
   useEffect(() => {
@@ -27,14 +26,27 @@ const ChatWindow: React.FC = () => {
       textarea.style.height = `${newHeight}px`;
     }
   }, [message]);
-  
-  
+  const messages = activeConversation?.response
+    ? [...activeConversation.response].sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
+    : [];
+  let lastDate = '';
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]); // This will run whenever messages array changes
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && selectedUser && !sendingMessage) {
       const messageText = message.trim();
       setMessage('');
-      
+
       try {
         await dispatch(chatActions.sendMessage(
           selectedUser.conversation_sid,
@@ -112,20 +124,7 @@ const ChatWindow: React.FC = () => {
     );
   }
 
-  const messages = activeConversation?.response 
-    ? [...activeConversation.response].sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      )
-    : [];
-  let lastDate = '';
 
-    useEffect(() => {
-    scrollToBottom();
-  }, [messages]); // This will run whenever messages array changes
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-b from-white to-gray-50/30">
       {/* Header */}
@@ -196,17 +195,14 @@ const ChatWindow: React.FC = () => {
                     </div>
                   )}
                   <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-1`}>
-                    <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${
-                      isOwn
-                        ? `bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-lg ${
-                            msg.status === 'failed' ? 'border-2 border-red-400' : ''
-                          }`
+                    <div className={`max-w-xs lg:max-w-md xl:max-w-lg ${isOwn
+                        ? `bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-lg ${msg.status === 'failed' ? 'border-2 border-red-400' : ''
+                        }`
                         : 'bg-white border border-gray-200 text-gray-900 rounded-2xl rounded-bl-lg shadow-sm'
-                    } px-4 py-3 shadow-lg hover:shadow-xl transition-all duration-200`}>
+                      } px-4 py-3 shadow-lg hover:shadow-xl transition-all duration-200`}>
                       <p className="text-sm leading-relaxed break-words">{msg.body}</p>
-                      <div className={`flex items-center justify-end mt-1 space-x-1 ${
-                        isOwn ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
+                      <div className={`flex items-center justify-end mt-1 space-x-1 ${isOwn ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
                         <span className="text-[10px]">{formatMessageTime(msg.timestamp)}</span>
                         {isOwn && (
                           <div className="ml-2">
@@ -214,7 +210,7 @@ const ChatWindow: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <div ref={messagesEndRef}/>
+                      <div ref={messagesEndRef} />
                     </div>
                   </div>
                 </div>
@@ -251,11 +247,10 @@ const ChatWindow: React.FC = () => {
           <button
             type="submit"
             disabled={!message.trim() || sendingMessage}
-            className={`flex-shrink-0 p-3 mb-1 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl ${
-              message.trim() && !sendingMessage
+            className={`flex-shrink-0 p-3 mb-1 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl ${message.trim() && !sendingMessage
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
+              }`}
           >
             {sendingMessage ? (
               <Loader2 className="w-5 h-5 animate-spin" />

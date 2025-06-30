@@ -81,7 +81,7 @@ export const rejectIncomingCall = () => {
     activeConnection = null;
   }
 };
-export const getDevice = (token?: string): Device | null => {
+export const getDevice = (token?: string | null): Device | null => {
   if (!device && token) {
     console.log("Creating new device in getDevice");
     device = new Device(token);

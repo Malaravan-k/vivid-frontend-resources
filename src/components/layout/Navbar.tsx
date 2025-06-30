@@ -9,7 +9,7 @@ import { useSelector } from "react-redux";
 import { useCall } from "../../context/CallContext";
 
 const Navbar = () => {
-  const { disconnectSocket } = useCall();
+  const { disconnectSocket, unreadVoicemailCount } = useCall();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -56,7 +56,9 @@ const Navbar = () => {
         { 
           name: "Voice Mails", 
           path: "/voiceMails",
-          icon: <Voicemail className="w-5 h-5" />
+          icon: <Voicemail className="w-5 h-5" />,
+          hasNotification: unreadVoicemailCount > 0,
+          notificationCount: unreadVoicemailCount
         },
       ];
 
@@ -88,7 +90,7 @@ const Navbar = () => {
                     key={item.path}
                     to={item.path}
                     className={cn(
-                      "flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                      "flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative",
                       location.pathname.startsWith(item.path)
                         ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 shadow-inner"
                         : "text-gray-600 hover:text-blue-600 hover:bg-gray-50/50"
@@ -98,6 +100,13 @@ const Navbar = () => {
                     {item.name}
                     {location.pathname.startsWith(item.path) && (
                       <span className="ml-2 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                    )}
+                    
+                    {/* Notification Badge */}
+                    {item.hasNotification && item.notificationCount && item.notificationCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 animate-pulse shadow-lg">
+                        {item.notificationCount > 9 ? '9+' : item.notificationCount}
+                      </span>
                     )}
                   </Link>
                 ))}
@@ -184,7 +193,7 @@ const Navbar = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex items-center px-3 py-3 rounded-lg text-base font-medium",
+                    "flex items-center px-3 py-3 rounded-lg text-base font-medium relative",
                     location.pathname.startsWith(item.path)
                       ? "bg-blue-50 text-blue-600"
                       : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
@@ -195,6 +204,13 @@ const Navbar = () => {
                   {item.name}
                   {location.pathname.startsWith(item.path) && (
                     <span className="ml-auto w-2 h-2 bg-blue-500 rounded-full"></span>
+                  )}
+                  
+                  {/* Mobile Notification Badge */}
+                  {item.hasNotification && item.notificationCount && item.notificationCount > 0 && (
+                    <span className="ml-auto min-w-6 h-6 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-2 animate-pulse shadow-lg">
+                      {item.notificationCount > 99 ? '99+' : item.notificationCount}
+                    </span>
                   )}
                 </Link>
               ))}

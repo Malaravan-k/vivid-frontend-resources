@@ -292,7 +292,7 @@ function getUserDetails(userId: string) {
           dispatch(failure(error, message));
         } else {
           // Get the primary mobile number from mobile_numbers
-          const mobileNumbers = response[0]?.phone_numbers || [];
+          const mobileNumbers = response?.phone_numbers || [];
           const primaryMobileObj = mobileNumbers.find((m: any) => m.is_primary);
           dispatch(success(response,primaryMobileObj?.phone_number));
           if (primaryMobileObj?.phone_number) {

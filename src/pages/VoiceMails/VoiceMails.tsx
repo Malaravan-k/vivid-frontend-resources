@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Clock, Mail } from 'lucide-react';
 import Table from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
-import { useNavigate } from 'react-router-dom';
+import VoiceMailDetailsModal from '../../components/VoiceModals/VoicemailDetailsModal'
 import { useDispatch, useSelector } from 'react-redux';
 import { voiceMailsActions } from '../../store/actions/voicemail.actions';
 import { RootState } from '../../store';
@@ -11,9 +11,12 @@ import { RootState } from '../../store';
 type VoicemailRecord = {
   last_activity: string;
   latest_call_status: string;
-  phone_number: string;
+  owner_number: string;
   total_calls: number;
   voicemails: number;
+  call_status: string;
+  call_started_at: string;
+  phone_number: string;
 };
 
 type Column<T> = {
@@ -25,14 +28,11 @@ type Column<T> = {
 const VoiceMails = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
-  const navigate = useNavigate();
+  const [selectedVoiceMailSummary, setSelectedVoiceMailSummary] = useState<VoicemailRecord | null>(null);
   const dispatch = useDispatch();
   
   const agentId = localStorage.getItem('primary_mobile_number')?.replace(/\D/g, '');
-  const { records, loading, total } = useSelector((state: RootState) => state.voiceMailReducer);
-  console.log("records112211221",records);
-  
-  const pageSize = 10;
+  const { records, loading, total, record, modalLoading } = useSelector((state: RootState) => state.voiceMailReducer);
 
   useEffect(() => {
     dispatch(voiceMailsActions.loadVoiceMails());
@@ -55,10 +55,13 @@ const VoiceMails = () => {
   };
 
   const handleRowClick = (item: VoicemailRecord) => {
-    navigate('/voiceMails-details', {
-      state: item
-    });
-    dispatch(voiceMailsActions.loadVoiceMaildetails(agentId , item?.phone_number))
+    setSelectedVoiceMailSummary(item);
+    dispatch(voiceMailsActions.loadVoiceMaildetails(item?.owner_number));
+  };
+
+  const handleMarkAsRead = (callId: string) => {
+    // Handle marking voicemail as read
+    dispatch(voiceMailsActions.updateVoicemailRead(callId));
   };
 
   const formatDate = (dateString: string) => {
@@ -113,7 +116,6 @@ const VoiceMails = () => {
       header: 'Call Status',
       accessor: (row) => getStatusBadge(row.call_status)
     },
-
   ];
 
   return (
@@ -163,6 +165,17 @@ const VoiceMails = () => {
           />
         </div>
       </div>
+
+      {/* Voice Mail Details Modal */}
+      {selectedVoiceMailSummary && (
+        <VoiceMailDetailsModal 
+          voiceMailSummary={selectedVoiceMailSummary}
+          voiceMailDetails={record || []}
+          isLoading={modalLoading}
+          onClose={() => setSelectedVoiceMailSummary(null)}
+          onMarkAsRead={handleMarkAsRead}
+        />
+      )}
     </div>
   );
 };

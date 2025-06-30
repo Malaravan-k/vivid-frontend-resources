@@ -1,8 +1,7 @@
 import {API} from 'aws-amplify'
 import { getDefaultParamswithoutlimitkey , buildQuery } from '../../helper/tools'
 
-const constantName = 'cases'
-
+const constantName = 'airtable_get_cases'
 function loadRecords(params?: any){
     const queryParams = buildQuery(params)
   return API.get('vivid-api', constantName , getDefaultParamswithoutlimitkey(null ,{queryStringParameters : queryParams}))
@@ -12,7 +11,7 @@ function loadRecords(params?: any){
 
 function loadRecord(id:any , useMobile = false){
   const endParam = useMobile ? 'mobile' : 'id'
-  return API.get('vivid-api', `case-details?${endParam}=${id}`, getDefaultParamswithoutlimitkey(null))
+  return API.get('vivid-api', `${constantName}/get_case_details?${endParam}=${id}`, getDefaultParamswithoutlimitkey(null))
     .then((response) => response)
     .catch((error) => Promise.reject(error));
 }

@@ -1,17 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
   PhoneIncoming,
   PhoneOutgoing,
-  Play,
-  Pause,
-  Volume2,
   Clock,
   Phone,
   Calendar,
   Loader2,
   X,
   MessageSquare,
+  CheckCircle,
+  XCircle,
+  PhoneMissed,
+  AlertCircle,
 } from 'lucide-react';
+import VoicemailPlayer from '../ui/Voicemailplayer';
 
 // Types
 type CallLog = {
@@ -46,13 +48,6 @@ type CallDetailsModalProps = {
   onClose: () => void;
 };
 
-type VoicemailPlayerProps = {
-  voicemailUrl: string | null;
-  callId: string;
-  isRead?: boolean;
-  type?: 'recording' | 'voicemail';
-};
-
 type CallStatusBadgeProps = {
   status: CallLog['call_status'] | CallLogSummary['latest_call_status'];
 };
@@ -63,27 +58,27 @@ const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({ status }) => {
     completed: { 
       color: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200', 
       label: '✓ Completed',
-      icon: '✓'
+      icon: CheckCircle
     },
     failed: { 
       color: 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border border-red-200', 
       label: '✗ Failed',
-      icon: '✗'
+      icon: XCircle
     },
     'no-answer': { 
       color: 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200', 
       label: '○ No Answer',
-      icon: '○'
+      icon: PhoneMissed
     },
     missed: { 
       color: 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 border border-orange-200', 
       label: '⊘ Missed',
-      icon: '⊘'
+      icon: PhoneMissed
     },
     busy: { 
       color: 'bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-800 border border-purple-200', 
       label: '⊗ Busy',
-      icon: '⊗'
+      icon: AlertCircle
     }
   };
 
@@ -96,136 +91,6 @@ const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({ status }) => {
   );
 };
 
-const VoicemailPlayer: React.FC<VoicemailPlayerProps> = ({
-  voicemailUrl ='https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  isRead = false,
-  type = 'voicemail'
-}) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime]= useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
-    };
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const handleEnded = () => setIsPlaying(false);
-    const handleLoadStart = () => setIsLoading(true);
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('loadstart', handleLoadStart);
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('loadstart', handleLoadStart);
-    };
-  }, []);
-
-  const togglePlayPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  if (!voicemailUrl) return null;
-
-  const isRecording = type === 'recording';
-  const bgColor = isRecording 
-    ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200' 
-    : (isRead ? 'bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200' : 'bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200');
-  
-  const buttonColor = isRecording 
-    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' 
-    : (isRead ? 'bg-gradient-to-r from-gray-600 to-slate-600 hover:from-gray-700 hover:to-slate-700' : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700');
-  
-  const progressColor = isRecording 
-    ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
-    : (isRead ? 'bg-gradient-to-r from-gray-600 to-slate-600' : 'bg-gradient-to-r from-emerald-600 to-teal-600');
-
-  return (
-    <div className={`rounded-xl p-3 shadow-sm ${bgColor}`}>
-      <audio ref={audioRef} src={voicemailUrl} preload="metadata" />
-      
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={togglePlayPause}
-          disabled={isLoading}
-          className={`flex items-center justify-center w-8 h-8 text-white rounded-full shadow-lg transition-all transform hover:scale-105 ${buttonColor}`}
-        >
-          { isPlaying ? (
-            <Pause className="w-4 h-4" />
-          ) : (
-            <Play className="w-4 h-4 ml-0.5" />
-          )}
-        </button>
-
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                {isRecording ? (
-                  <Volume2 className="w-4 h-4 text-blue-600" />
-                ) : (
-                  <MessageSquare className="w-4 h-4 text-emerald-600" />
-                )}
-                <span className="text-sm text-gray-800">
-                  {isRecording ? 'Call Recording' : 'Voicemail'}
-                </span>
-              </div>
-              
-              {!isRecording && !isRead && (
-                <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold shadow-sm">
-                  NEW
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-3 text-sm text-gray-600">
-              <span className="font-medium">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span> 
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="w-full bg-gray-200 rounded-full h-2.5 shadow-inner">
-              <div
-                className={`h-2.5 rounded-full transition-all duration-300 shadow-sm ${progressColor}`}
-                style={{
-                  width: `${duration ? (currentTime / duration) * 100 : 0}%`,
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const CallDetailsModal: React.FC<CallDetailsModalProps> = ({
   callSummary,
   callDetails,
@@ -233,13 +98,6 @@ const CallDetailsModal: React.FC<CallDetailsModalProps> = ({
   onClose,
 }) => {
   if (!callSummary) return null;
-
-  const formatTime = (seconds: string) => {
-    const totalSeconds = parseInt(seconds);
-    const minutes = Math.floor(totalSeconds / 60);
-    const remainingSeconds = totalSeconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
 
   const formatDate = (timestamp: string): string => {
     const date = new Date(timestamp);
@@ -283,7 +141,7 @@ const CallDetailsModal: React.FC<CallDetailsModalProps> = ({
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold">
-                    {callSummary.phone_number}
+                    {callSummary.owner_number}
                   </h3>
                   <p className="text-blue-100 text-sm">
                     Call History & Details
@@ -367,40 +225,27 @@ const CallDetailsModal: React.FC<CallDetailsModalProps> = ({
                             
                             <div className="text-right space-y-2">
                               <CallStatusBadge status={call.call_status} />
-                              <div className="flex items-center text-sm font-medium text-gray-600">
-                                <Clock className="w-4 h-4 mr-1" />
-                                {formatTime(call.call_duration)}
-                              </div>
                             </div>
                           </div>
 
                           {/* Call Details Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-gray-50 rounded-lg p-3">
-                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">From</p>
-                              <p className="font-mono text-sm font-medium text-gray-900">{call.owner_number}</p>
-                            </div>
-                            <div className='col-span-3'>
+                          <div className="grid grid-cols-1">
+                            <div className=''>
                               {(call.recording_url ) && (
-                             <div>
-                            <div className="space-y-4">
-                              {call.recording_url && (
-                                <VoicemailPlayer
-                                  // voicemailUrl={call.recording_url}
-                                  callId={call.id}
-                                  type="recording"
-                                />
+                                <div className="space-y-4">
+                                  {call.recording_url && (
+                                    <VoicemailPlayer
+                                      voicemailUrl={call.recording_url}
+                                      callId={call.id}
+                                      type="recording"
+                                    />
+                                  )}
+
+                                </div>
                               )}
                             </div>
                           </div>
-                        )}
-                              </div>
-
-                          </div>
                         </div>
-
-                        {/* Recording/Voicemail Section */}
-                        
                       </div>
                     ))}
                   </div>
@@ -421,49 +266,5 @@ const CallDetailsModal: React.FC<CallDetailsModalProps> = ({
     </div>
   );
 };
-
-// Demo data for showcase
-const demoCallSummary: CallLogSummary = {
-  last_activity: "2024-06-18T10:30:00Z",
-  latest_call_status: "completed",
-  phone_number: "+1 (555) 123-4567",
-  total_calls: 5,
-  voicemails: 2
-};
-
-const demoCallDetails: CallLog[] = [
-  {
-    id: "1",
-    call_sid: "CA1234567890abcdef1234567890abcdef",
-    call_type: "incoming",
-    call_status: "completed",
-    call_duration: "145",
-    call_started_at: "2024-06-18T10:30:00Z",
-    call_ended_at: "2024-06-18T10:32:25Z",
-    from_number: "+1 (555) 123-4567",
-    to_number: "+1 (555) 987-6543",
-    case_number: "CASE001",
-    recording_url: "https://example.com/recording1.mp3",
-    voicemail_url: null,
-    voicemail_read: true,
-    created_at: "2024-06-18T10:30:00Z"
-  },
-  {
-    id: "2",
-    call_sid: "CA1234567890abcdef1234567890abcde2",
-    call_type: "outgoing",
-    call_status: "no-answer",
-    call_duration: "0",
-    call_started_at: "2024-06-17T15:45:00Z",
-    call_ended_at: "2024-06-17T15:45:30Z",
-    from_number: "+1 (555) 987-6543",
-    to_number: "+1 (555) 123-4567",
-    case_number: "CASE002",
-    recording_url: null,
-    voicemail_url: "https://example.com/voicemail1.mp3",
-    voicemail_read: false,
-    created_at: "2024-06-17T15:45:00Z"
-  }
-];
 
 export default CallDetailsModal;

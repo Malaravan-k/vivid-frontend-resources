@@ -1,12 +1,12 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { 
-  Building, 
-  Calendar, 
-  DollarSign, 
-  Home, 
-  FileText, 
-  Activity, 
+import {
+  Building,
+  Calendar,
+  DollarSign,
+  Home,
+  FileText,
+  Activity,
   MapPin,
   Phone,
   User,
@@ -33,7 +33,7 @@ interface OwnerInfo {
 
 const OwnerInfo: React.FC = () => {
   const { selectedUser, ownerInfo, ownerInfoLoading } = useSelector((state: RootState) => state.chatReducer);
-  const { loading:infoLoading, record } = useSelector((state: RootState) => state.caseReducer)
+  const { loading: infoLoading, record } = useSelector((state: RootState) => state.caseReducer)
 
   if (!selectedUser) {
     return (
@@ -129,21 +129,15 @@ const OwnerInfo: React.FC = () => {
     <div className="w-80 lg:w-96 bg-gradient-to-b from-white to-gray-50/50 border-l border-gray-200/50 flex flex-col h-full">
       {/* Header */}
       <div className="p-6 border-b border-gray-200/50 bg-white/90 backdrop-blur-sm">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <User className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">{selectedUser.name}</h2>
-            <p className="text-sm text-gray-600 flex items-center gap-1">
-              <Phone className="w-3 h-3" />
-              {selectedUser.owner_no}
-            </p>
-          </div>
+        
+        <div className="flex gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-200/50">
+        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+          <Home className="w-5 h-5 text-white" />
         </div>
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-3 border border-blue-200/50">
-          <h3 className="text-sm font-semibold text-blue-900 mb-1">Property Information</h3>
+           <div>
+          <h3 className="text-sm font-semibold text-blue-900 mb-1">Owner Information</h3>
           <p className="text-xs text-blue-700">Case details and property status</p>
+          </div>
         </div>
       </div>
 
