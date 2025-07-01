@@ -7,6 +7,8 @@ import { disconnectDevice } from "../../utils/twilioDevice";
 import { jwtDecode } from "jwt-decode";
 import { snackbarActions,snackbarClose } from "../../helper/tools";
 import { chatActions } from "./chat.actions";
+import { userActions } from "./user.actions";
+import { callerActions } from "./caller.action";
 
 
 function login(email: string, password: string, navigate: NavigateFunction) {
@@ -60,6 +62,8 @@ function logout(navigate:NavigateFunction) {
     disconnectDevice();
     dispatch(sessionLogout());
     dispatch(chatActions.resetChat())
+    dispatch(userActions.clear())
+    dispatch(callerActions.clear())
   };
   function sessionLogout() {
     return { type: sessionConstants.LOG_OUT };

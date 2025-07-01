@@ -78,17 +78,31 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [activeCall, setActiveCall] = useState<CallState | null>(null);
   const [voicemailNotifications, setVoicemailNotifications] = useState<VoicemailNotification[]>([]);
-  console.log("activeCall::::",activeCall);
-  console.log("callStatus:::::",callStatus);
-  
-  
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
+
+  console.log("activeCall::::", activeCall);
+  console.log("callStatus:::::", callStatus);
+
   const { user, isLoggedIn } = useSelector((state: RootState) => state.sessionReducer);
   const { agentId } = useSelector((state: RootState) => state.callerReducer);
-
-  const agentNumber = agentId?.replace(/\s+/g, '');
-
   // Calculate unread voicemail count
   const unreadVoicemailCount = voicemailNotifications.filter(vm => !vm.isRead).length;
+
+  // Effect to join room when agentId is available and socket is connected
+  useEffect(() => {
+    if (socket && isConnected && agentId && !hasJoinedRoom) {
+      console.log('Joining room with agentId:', agentId);
+      socket.emit('join', { "agent_id": agentId });
+      setHasJoinedRoom(true);
+    }
+  }, [socket, isConnected, agentId, hasJoinedRoom]);
+
+  // Effect to handle agentId changes (rejoin room if agentId changes)
+  useEffect(() => {
+    if (socket && isConnected && agentId && hasJoinedRoom) {
+      socket.emit('join', { "agent_id": agentId });
+    }
+  }, [agentId]);
 
   useEffect(() => {
     const statusArray = ['completed', 'device ready', 'disconnected'];
@@ -110,12 +124,16 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
     }
   }, [isLoggedIn]);
 
-  // Sync callStatus with activeCall status
+  // NEW: Sync callStatus with activeCall status whenever callStatus changes
   useEffect(() => {
     if (activeCall) {
-      setCallStatus(activeCall.status);
+      setActiveCall(prev => prev ? {
+        ...prev,
+        status: callStatus,
+        isPostCallAvailable: ['completed'].some(s => callStatus.toLowerCase().includes(s.toLowerCase()))
+      } : null);
     }
-  }, [activeCall?.status]);
+  }, [callStatus]);
 
   // Handle call timer
   useEffect(() => {
@@ -168,13 +186,15 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       }
     };
   }, [callStatus, activeCall?.callStartTime]);
-  useEffect(()=>{
-    if(!activeCall && ['no-answer'].includes(callStatus.toLowerCase())){
-       setTimeout(()=>{
-         setCallStatus('Device Ready')
-       },5000)
+
+  useEffect(() => {
+    if (!activeCall && ['no-answer', 'completed'].includes(callStatus.toLowerCase())) {
+      setTimeout(() => {
+        setCallStatus('Device Ready')
+      }, 5000)
     }
-  },[activeCall])
+  }, [activeCall])
+
   const connectSocket = () => {
     if (socket?.connected) {
       console.log('Socket already connected');
@@ -186,13 +206,14 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
 
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
-      newSocket.emit('join', { "agent_id": agentNumber });
       setIsConnected(true);
+      setHasJoinedRoom(false); // Reset room join status on new connection
     });
 
     newSocket.on('disconnect', () => {
       console.log('Socket disconnected');
       setIsConnected(false);
+      setHasJoinedRoom(false); // Reset room join status on disconnect
     });
 
     newSocket.on('call_status_update', (data: { CallStatus: string }) => {
@@ -205,7 +226,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       // Extract the correct fields from the socket data
       const phoneNumber = data.owner_no || 'Unknown Number';
       const isRead = data.voicemail_read === true; // Convert to boolean, default to false
-      
+
       // Create new voicemail notification
       const newVoicemail: VoicemailNotification = {
         id: `vm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -223,6 +244,12 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
     newSocket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
       setIsConnected(false);
+      setHasJoinedRoom(false);
+    });
+
+    // Optional: Listen for room join confirmation
+    newSocket.on('joined_room', (data) => {
+      console.log('Successfully joined room:', data);
     });
   };
 
@@ -232,19 +259,26 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       socket.disconnect();
       setSocket(null);
       setIsConnected(false);
+      setHasJoinedRoom(false);
     }
   };
 
   const startCall = (caseId: string, ownerNumber: string, call: any) => {
     const newCallState = {
       ...initialCallState,
-      status: callStatus || 'in-progress', // Use current call status for incoming calls
+      status: callStatus, // Use current call status for incoming calls
       ownerNumber,
       caseId,
       call,
     };
     setActiveCall(newCallState);
-    setCallStatus(newCallState.status);
+    // setCallStatus(newCallState.status);
+    if (incomingCall) {
+      setCallStatus('in-progress')
+    } else {
+      setCallStatus('calling')
+    }
+
   };
 
   const endCall = () => {
@@ -252,53 +286,47 @@ export const CallProvider: React.FC<CallProviderProps> = ({ children }) => {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    console.log("Hi this end call is Triggered now");
     setActiveCall(null);
     setCallStatus('Disconnected');
   };
 
+  // UPDATED: Simplified updateCallStatus function
   const updateCallStatus = (status: string) => {
+    console.log('Updating call status to:', status);
     setCallStatus(status);
-
-    if (!activeCall) return;
-
-    setActiveCall(prev => prev ? {
-      ...prev,
-      status,
-      isPostCallAvailable: ['completed'].some(s => status.toLowerCase().includes(s.toLowerCase()))
-    } : null);
+    // The useEffect above will handle syncing with activeCall
   };
 
-const toggleMute = () => {
-  if (!activeCall?.call) {
-    console.error('No active call to mute');
-    return;
-  }
+  const toggleMute = () => {
+    if (!activeCall?.call) {
+      console.error('No active call to mute');
+      return;
+    }
 
-  try {
-    const newMuteState = !activeCall.isMuted;
-    
-    // Check if mute exists and is a function
-    if (activeCall.call.mute && typeof activeCall.call.mute === 'function') {
-      activeCall.call.mute(newMuteState);
-    } else {
-      console.warn('Mute method not available on call object');
-      // Fallback: Just update the UI state
+    try {
+      const newMuteState = !activeCall.isMuted;
+
+      // Check if mute exists and is a function
+      if (activeCall.call.mute && typeof activeCall.call.mute === 'function') {
+        activeCall.call.mute(newMuteState);
+      } else {
+        console.warn('Mute method not available on call object');
+        // Fallback: Just update the UI state
+        setActiveCall(prev => prev ? {
+          ...prev,
+          isMuted: newMuteState
+        } : null);
+        return;
+      }
+
       setActiveCall(prev => prev ? {
         ...prev,
         isMuted: newMuteState
       } : null);
-      return;
+    } catch (error) {
+      console.error('Error toggling mute:', error);
     }
-    
-    setActiveCall(prev => prev ? {
-      ...prev,
-      isMuted: newMuteState
-    } : null);
-  } catch (error) {
-    console.error('Error toggling mute:', error);
-  }
-};
+  };
 
   const setCall = (call: any) => {
     setActiveCall(prev => prev ? {
@@ -308,7 +336,7 @@ const toggleMute = () => {
   };
 
   const markVoicemailAsRead = (id: string) => {
-    setVoicemailNotifications(prev => 
+    setVoicemailNotifications(prev =>
       prev.map(vm => vm.id === id ? { ...vm, isRead: true } : vm)
     );
   };

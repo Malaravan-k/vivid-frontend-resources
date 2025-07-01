@@ -1,15 +1,15 @@
 import { API } from "aws-amplify";
 import { getDefaultParamswithoutlimitkey } from "../../helper/tools";
 
-const constantName = 'post_calls'
+const constantName = 'post-call'
 
-function getPostCallDetails(caseId: any) {
-    return API.get('vivid-api', `${constantName}?case_id=${caseId}`, getDefaultParamswithoutlimitkey(null))
+function getPostCallDetails(caseId: any,ownerNumber:any,ownerName:any) {
+    return API.get('vivid-api', `${constantName}?case_no=${caseId}&owner_name=${ownerName}&phone_number=${ownerNumber}`, getDefaultParamswithoutlimitkey(null))
         .then((response) => response)
         .catch((error) => Promise.reject(error));
 }
-function updatePostCallForm(case_id: any, record: any) {
-    return API.put('vivid-api', `${constantName}?case_id=${case_id}`, getDefaultParamswithoutlimitkey(null, { body: record }))
+function updatePostCallForm( record: any) {
+    return API.post('vivid-api', `post-call`, getDefaultParamswithoutlimitkey(null, { body: record }))
         .then((response) => response)
         .catch((error) => Promise.reject(error));
 }

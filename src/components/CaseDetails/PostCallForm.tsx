@@ -9,7 +9,10 @@ interface PostCallFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: PostCallFormData) => void;
-  callerNumber?: string;
+  callerNumber?: string | null;
+  caseId:string | null;
+  selectedPhoneField:string |null;
+  ownerName:string|null
 }
 
 export interface PostCallFormData {
@@ -26,7 +29,7 @@ export interface PostCallFormData {
   property_standing: string;
   disposition_interest: string;
   deal_urgency: string;
-  rep_flag: boolean;
+  red_flag: boolean;
   flag_reason: string;
   internal_comments: string;
 }
@@ -106,6 +109,10 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  callerNumber,
+  caseId,
+  selectedPhoneField,
+  ownerName
 }) => {
   const { loading, record } = useSelector((state: RootState) => state.postCallReducer);
 
@@ -123,14 +130,13 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
     property_standing: '',
     disposition_interest: '',
     deal_urgency: '',
-    rep_flag: false,
+    red_flag: false,
     flag_reason: '',
     internal_comments: ''
   };
 
   const [formData, setFormData] = useState<PostCallFormData>(initialState);
 
-  console.log("formData", formData);
 
   useEffect(() => {
     if (record) {
@@ -148,7 +154,7 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
         property_standing: record?.property_standing || '',
         disposition_interest: record?.disposition_interest || '',
         deal_urgency: record?.deal_urgency || '',
-        rep_flag: record?.rep_flag || false,
+        red_flag: record?.red_flag || false,
         flag_reason: record?.flag_reason || '',
         internal_comments: record?.internal_comments || ''
       });
@@ -186,7 +192,29 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(formData);
+      const data = {
+       case_no:caseId,
+       owner_name:ownerName[0],
+       lead_stage:formData?.lead_stage,
+       [selectedPhoneField]:{
+        phone_number:callerNumber,
+        call_outcome:formData?.call_outcome,
+        call_status:formData?.call_status,
+        called_date:formData?.call_date,
+        valid_status:formData?.phone_validity_status,
+        call_notes:formData?.call_notes,
+        gpt_call_summary:formData?.gpt_call_summary
+       },
+       "properties":{
+        property_standing:formData?.property_standing,
+        red_flag:formData?.red_flag,
+        flag_reason:formData?.flag_reason,
+        disposition_interest:formData?.disposition_interest,
+        deal_urgency:formData?.deal_urgency,
+        internal_comments:formData?.internal_comments
+       }
+      }
+      onSubmit(data);
     }
   };
 
@@ -467,12 +495,12 @@ const PostCallForm: React.FC<PostCallFormProps> = ({
                     <div className="flex items-center">
                       <input
                         type="checkbox"
-                        id="rep_flag"
-                        checked={formData.rep_flag}
-                        onChange={(e) => handleInputChange('rep_flag', e.target.checked)}
+                        id="red_flag"
+                        checked={formData.red_flag}
+                        onChange={(e) => handleInputChange('red_flag', e.target.checked)}
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-200 rounded"
                       />
-                      <label htmlFor="rep_flag" className="ml-2 text-sm text-gray-700">
+                      <label htmlFor="red_flag" className="ml-2 text-sm text-gray-700">
                         Yes if issue needs review
                       </label>
                     </div>

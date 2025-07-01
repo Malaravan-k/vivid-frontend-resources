@@ -4,10 +4,10 @@ import { postCallConstants } from "../constants/postcall.constants";
 import { loaderActions } from "./loader.actions";
 import { snackbarActions, snackbarClose } from "../../helper/tools";
 
-function getPostCallDetails(caseId : any) {
+function getPostCallDetails(caseId : any, ownerNumber:any, ownerName:any) {
   return (dispatch: Dispatch) => {
     dispatch(request(caseId))
-    postCallServices.getPostCallDetails(caseId).then(
+    postCallServices.getPostCallDetails(caseId,ownerNumber,ownerName).then(
       (res) => {
         const { response, error, message } = res;
         const postCallDetails = response?.[0] || res;
@@ -39,11 +39,11 @@ function getPostCallDetails(caseId : any) {
   }
 }
 
-function updateRecord(caseId:any,record: any) {
+function updateRecord(record: any) {
   return (dispatch: Dispatch) => {
     dispatch(loaderActions.start());
     dispatch(request(record));
-    postCallServices.updatePostCallForm(caseId,record).then(
+    postCallServices.updatePostCallForm(record).then(
       (res) => {
         const { response, error, message } = res;
         if (error) {

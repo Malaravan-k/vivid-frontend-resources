@@ -53,6 +53,8 @@ export default function callerReducer(
         draft.message = action.message || null;
         draft.success = false;
         break;
+      case callerConstants.CLEAR:
+        return initialState;
     }
 })
 }

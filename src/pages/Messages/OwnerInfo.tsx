@@ -2,14 +2,11 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import {
   Building,
-  Calendar,
   DollarSign,
   Home,
   FileText,
   Activity,
   MapPin,
-  Phone,
-  User,
   Loader2,
   AlertCircle
 } from 'lucide-react';
@@ -22,11 +19,11 @@ interface User {
 }
 
 interface OwnerInfo {
-  case_id: string;
-  address: string;
+  case_number: string;
+  Property_Address: string;
   filling_date: string;
-  assessed_value: string;
-  amount_owed: string;
+  Assessed_Value: string;
+  Amount_Owed: string;
   property_type: string;
   property_status: string;
 }
@@ -83,45 +80,33 @@ const OwnerInfo: React.FC = () => {
   const infoItems = [
     {
       label: 'Case ID',
-      value: record?.case_id,
+      value: record?.case_number,
       icon: FileText,
       color: 'from-blue-500 to-blue-600',
     },
     {
       label: 'Property Address',
-      value: record?.address,
+      value: record?.Property_Address,
       icon: MapPin,
       color: 'from-emerald-500 to-emerald-600',
     },
     {
-      label: 'Filing Date',
-      value: record?.filling_date,
-      icon: Calendar,
-      color: 'from-purple-500 to-purple-600',
-    },
-    {
       label: 'Assessed Value',
-      value: record?.assessed_value,
+      value: record?.Assessed_Value,
       icon: DollarSign,
       color: 'from-green-500 to-green-600',
     },
     {
       label: 'Amount Owed',
-      value: record?.amount_owed,
+      value: record?.Amount_Owed,
       icon: DollarSign,
       color: 'from-red-500 to-red-600',
     },
     {
-      label: 'Property Type',
-      value: record?.property_type,
-      icon: Home,
-      color: 'from-indigo-500 to-indigo-600',
-    },
-    {
-      label: 'Property Status',
-      value: record?.property_status,
-      icon: Activity,
-      color: 'from-amber-500 to-amber-600',
+      label: 'Equity Status',
+      value: record?.Equity_Status,
+      icon: DollarSign,
+      color: 'from-red-500 to-red-600',
     },
   ];
 
@@ -173,8 +158,8 @@ const OwnerInfo: React.FC = () => {
           </h3>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
-              <span className="text-gray-300">Status:</span>
-              <span className="font-medium">{record?.property_status || 'Unknown'}</span>
+              <span className="text-gray-300">Equity Status:</span>
+              <span className="font-medium">{record?.Equity_Status || 'Unknown'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-300">Type:</span>

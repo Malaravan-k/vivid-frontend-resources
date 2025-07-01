@@ -14,10 +14,9 @@ const CaseDetail = () => {
   const { activeCall, setCallStatus } = useCall()
   const location = useLocation();
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string | null>(null);
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [caseData, setCaseData] = useState<any | null>(null);
   const { loading, record } = useSelector((state: RootState) => state.caseReducer)
-  console.log("record",record);
-  console.log("caseData",caseData);
   
   const agentNumber = localStorage.getItem('primary_mobile_number')
   const caseId = record?.case_number
@@ -25,11 +24,36 @@ const CaseDetail = () => {
   useEffect(() => {
     if (activeCall) {
       setSelectedPhoneNumber(activeCall?.ownerNumber)
+      // Also update selectedPhone when activeCall changes
+      const phoneField = getPhoneFieldForNumber(activeCall?.ownerNumber);
+      setSelectedPhone(phoneField);
     }
   }, [activeCall])
 
-  console.log("selectedPhoneNumber from cases", selectedPhoneNumber);
-  
+  // Function to get which phone field contains a specific phone number
+  const getPhoneFieldForNumber = (phoneNumber: string | null) => {
+    if (!phoneNumber || !caseData) return null;
+    
+    const phoneFields = ['Phone_1', 'Phone_2', 'Phone_3'];
+    
+    for (const field of phoneFields) {
+      const fieldValue = caseData[field];
+      let storedNumber = null;
+      
+      if (Array.isArray(fieldValue) && fieldValue.length > 0) {
+        storedNumber = fieldValue[0].toString().trim();
+      } else if (typeof fieldValue === 'string') {
+        storedNumber = fieldValue.trim();
+      }
+      
+      if (storedNumber === phoneNumber) {
+        return field;
+      }
+    }
+    
+    return null;
+  };
+
   // Updated function to extract phone numbers from Phone_1, Phone_2, Phone_3 format
   const extractPhoneNumbers = (caseRecord: any) => {
     if (!caseRecord) return [];
@@ -72,18 +96,22 @@ const CaseDetail = () => {
         const matchedPhone = phoneNumbers.find((phone: any) => phone === activeCall.ownerNumber);
         if (matchedPhone) {
           setSelectedPhoneNumber(matchedPhone);
+          setSelectedPhone(getPhoneFieldForNumber(matchedPhone));
         } else if (phoneNumbers.length > 0) {
           // If active call number not in list, still select first available
           setSelectedPhoneNumber(phoneNumbers[0]);
+          setSelectedPhone(getPhoneFieldForNumber(phoneNumbers[0]));
         }
       } else {
         // No active call - check if URL param matches a phone number
         const matchedPhone = phoneNumbers.find((phone: any) => phone === id);
         if (matchedPhone) {
           setSelectedPhoneNumber(matchedPhone);
+          setSelectedPhone(getPhoneFieldForNumber(matchedPhone));
         } else if (phoneNumbers.length > 0) {
           // Default to first number if no match
           // setSelectedPhoneNumber(phoneNumbers[0]);
+          // setSelectedPhone(getPhoneFieldForNumber(phoneNumbers[0]));
         }
       }
     }
@@ -100,18 +128,10 @@ const CaseDetail = () => {
       const incomingCallNumber = location.state.callerNumber;
       if (incomingCallNumber && phoneNumbers.includes(incomingCallNumber)) {
         setSelectedPhoneNumber(incomingCallNumber);
+        setSelectedPhone(getPhoneFieldForNumber(incomingCallNumber));
       }
     }
   }, [location.state, phoneNumbers]);
-
-  const formatPhoneNumber = (phone: any) => {
-    if (!phone) return '';
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length === 10) {
-      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-    }
-    return phone;
-  };
 
   const getUrgencyColor = (score: any) => {
     if (!score) return 'bg-gray-200';
@@ -129,9 +149,11 @@ const CaseDetail = () => {
     // Only allow selection if there's no active call or if it's the active call's number
     if (!activeCall || activeCall.ownerNumber === phone) {
       setSelectedPhoneNumber(phone);
+      setSelectedPhone(getPhoneFieldForNumber(phone)); // Update selectedPhone when clicking
       setCallStatus('Device ready')
     }
   };
+
   const getPhoneLabel = (phone: string, index: number) => {
     const phoneFields = ['Phone_1', 'Phone_2', 'Phone_3'];
     const labels = ['Phone 1', 'Phone 2', 'Phone 3'];
@@ -349,12 +371,12 @@ const CaseDetail = () => {
                       <h3 className="text-sm font-medium text-gray-500 flex items-center gap-2">
                         <Clock className="h-4 w-4" /> Urgency Score
                       </h3>
-                      {caseData.urgency_score && (
+                      {caseData.Urgency_Score && (
                         <div className={`h-3 w-3 rounded-full ${getUrgencyColor(caseData.urgency_score)}`}></div>
                       )}
                     </div>
                     <div className="mt-2 flex items-center gap-2">
-                      {caseData.urgency_score ? (
+                      {caseData.Urgency_Score ? (
                         <>
                           <div className="w-full bg-gray-200 rounded-full h-2.5">
                             <div
@@ -387,6 +409,8 @@ const CaseDetail = () => {
                 agentNumber={agentNumber}
                 ownerNumber={selectedPhoneNumber}
                 caseId={caseId}
+                selectedPhoneField={selectedPhone} 
+                ownerName = {caseData?.Full_Name}// Pass the phone field to PhoneDashboard if needed
               />
             </div>
           </div>

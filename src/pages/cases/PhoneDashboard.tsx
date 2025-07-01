@@ -22,9 +22,11 @@ type PhoneDashboardProps = {
   agentNumber: string | null;
   ownerNumber: string | null;
   caseId: string | null;
+  selectedPhoneField:string | null;
+  ownerName:string | null;
 };
 
-const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber, caseId }) => {
+const PhoneDashboard: React.FC<PhoneDashboardProps> = ({ agentNumber, ownerNumber, caseId,selectedPhoneField ,ownerName}) => {
   const navigate = useNavigate();
   const { success } = useSelector((state: RootState) => state.postCallReducer);
   
@@ -140,15 +142,16 @@ const callOwner = async () => {
 
   const handlePostCallClick = () => {
     setIsPostCallFormOpen(true);
-    dispatch(postCallActions.getPostCallDetails(caseId));
+    dispatch(postCallActions.getPostCallDetails(caseId,ownerNumber,ownerName));
   };
 
   const handlePostCallFormClose = () => {
     setIsPostCallFormOpen(false);
   };
 
-  const handlePostCallFormSubmit = (formData: any) => {
-    dispatch(postCallActions.updateRecord(caseId, formData));
+  const handlePostCallFormSubmit = (data: any) => {
+    console.log("formData",data)
+    dispatch(postCallActions.updateRecord( data));
     if (success) {
       setIsPostCallFormOpen(false);
       dispatch(postCallActions.resetSuccess());
@@ -197,9 +200,7 @@ const getPhoneIcon = () => {
 
   const isCallActive = hasActiveCall && callStatus.toLowerCase() === 'in-progress';
   const isCallActionable = hasActiveCall && ['in-progress', 'ringing', 'initiated', 'calling', 'connecting'].includes(callStatus.toLowerCase());
-  // console.log("isInitiatingCall:A:A:A:A",isInitiatingCall);
-  // console.log("caseId",caseId);
-  console.log("activeCall",activeCall);
+  console.log("activeCall ",activeCall);
   console.log("hasActiveCall",hasActiveCall);
   
   
@@ -214,7 +215,6 @@ const getPhoneIcon = () => {
     if (activeCall && !hasActiveCall) {
       return `Another call active (${activeCall.ownerNumber})`;
     }
-    
     return callStatus;
   };
 
@@ -237,7 +237,10 @@ const getPhoneIcon = () => {
           isOpen={isPostCallFormOpen}
           onClose={handlePostCallFormClose}
           onSubmit={handlePostCallFormSubmit}
-          callerNumber={lastCallerNumber}
+          callerNumber={ownerNumber}
+          caseId = {caseId}
+          selectedPhoneField = {selectedPhoneField}
+          ownerName = {ownerName}
         />
 
         <div className='flex items-center justify-between mb-6'>
@@ -302,7 +305,7 @@ const getPhoneIcon = () => {
         <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 w-full px-6">
           {isCallActionable ? (
             <motion.button
-              className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full text-sm w-full shadow-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+              className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full text-sm mx-auto shadow-lg transition-colors duration-200 flex items-center justify-center space-x-2"
               onClick={hangup}
               whileTap={{ scale: 0.95 }}
             >

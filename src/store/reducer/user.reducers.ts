@@ -152,7 +152,8 @@ const userReducer = (state = initialState, props: UserAction): UserState =>
         draft.success = false;
         draft.message = message ?? null;
         break;
-
+      case userConstants.CLEAR:
+        return initialState;
       default:
         break;
     }

@@ -319,6 +319,10 @@ function getUserDetails(userId: string) {
   }
 }
 
+function clear(){
+  return {type : userConstants.CLEAR}
+}
+
 
 export const userActions = {
   AddUser,
@@ -327,5 +331,6 @@ export const userActions = {
   deleteRecord,
   syncTwilioNumbers,
   fetchTwilioNumbers,
-  getUserDetails
+  getUserDetails,
+  clear
 }

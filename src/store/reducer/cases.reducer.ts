@@ -67,7 +67,7 @@ export default function caseReducer(
         draft.page = action.page ?? 0;
         break;
       case casesConstants.LOAD_CASE_SUCCESS:
-        draft.record = action.record? action.record : {};
+        draft.record = action.record ?? {};
         draft.loading = false;
         draft.error = false;
         draft.success = false;

@@ -19,11 +19,10 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const { loading } = useAuth();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const { isLoggedIn, user } = useSelector((state: RootState) => state.sessionReducer);
   const { primaryMobileNumber } = useSelector((state: RootState) => state.userReducer);
   const {caseId} = useSelector((state: RootState) => state.caseReducer);
-  // const [incomingCall, setIncomingCall] = useState<any>(null);
   const [callerNumber, setCallerNumber] = useState('');
   const [callAccepted, setCallAccepted] = useState(false);
   const [showIncomingModal, setShowIncomingModal] = useState(false);
@@ -33,9 +32,8 @@ const Layout = ({ children }: LayoutProps) => {
   const autoRejectTimeout = useRef<NodeJS.Timeout | null>(null);
   const dispatch = useDispatch();
   const { connectSocket, callStatus, setCallStatus, startCall, incomingCall, setIncomingCall, voicemailNotifications, markVoicemailAsRead } = useCall()
-  const userId = user?.['custom:userId']
+  const userId = user?.['custom:userId'];
   const userRole = user?.["custom:role"];
-  console.log("incomingCall>>>>>>>>",incomingCall);
   
   useEffect(() => {
     if (userRole === 'User' && isLoggedIn) {
@@ -66,7 +64,7 @@ const Layout = ({ children }: LayoutProps) => {
     console.log("Incoming call with parameters:", conn.parameters);
     const from = conn.parameters.From || 'Unknown';
     dispatch(casesActions.getCaseId(from.replace(/\D/g, '')))
-    setCallerNumber(from.replace(/\D/g, ''));
+    setCallerNumber(from);
     setIncomingCall(conn);
     setTimeout(()=>{
       setShowIncomingModal(true);

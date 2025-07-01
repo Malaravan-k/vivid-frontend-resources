@@ -36,6 +36,11 @@ function getCallerToken(id:any) {
   }
 }
 
+function clear(){
+  return {type: callerConstants.CLEAR}
+}
+
 export const callerActions = {
-    getCallerToken
+    getCallerToken,
+    clear
 }
